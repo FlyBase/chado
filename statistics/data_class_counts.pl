@@ -125,7 +125,6 @@ my $host      = 'localhost';
 my $username  = cuserid();
 my $password  = '';
 my $port      = 5432;
-my $species;
 my @databases = ();
 
 my $getopt = GetOptions(
@@ -136,7 +135,6 @@ my $getopt = GetOptions(
     'username|user=s'   => \$username,
     'password|passwd=s' => \$password,
     'database|db=s'     => \@databases,
-    #'species=s'         => \$species,
     'port=i'            => \$port
 ) or pod2usage(2);
 
