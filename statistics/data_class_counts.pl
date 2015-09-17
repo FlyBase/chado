@@ -159,17 +159,15 @@ for my $db (@databases) {
         $result{$dc}{$db} = $counts->{$dc};
     }
 
-    my $dmel_fbgn_query =<<'SQL';
+    my $fbgn_loc_query =<<'SQL';
 select count(*)
-    from feature f join organism o on (f.organism_id=o.organism_id)
+    from feature f join featureloc fl on (f.feature_id=fl.feature_id)
     where f.uniquename ~ E'^FBgn\\d+$'
       and f.is_obsolete = false
-      and f.is_analysis = false
-      and o.genus='Drosophila'
-      and o.species='melanogaster';
+      and f.is_analysis = false;
 SQL
 
-    $result{'FBgn_Dmel'}{$db} = get_count({dbh => $dbh, query => $dmel_fbgn_query});
+    $result{'FBgn_loc'}{$db} = get_count({dbh => $dbh, query => $fbgn_loc_query});
     $result{'FBsn'}{$db} = get_count({ dbh => $dbh, bind => ['^FBsn\\d+$'], query => "select count(*) from strain where uniquename ~ ? and is_obsolete=false"});
     $result{'FBtc'}{$db} = get_count({ dbh => $dbh, bind => ['^FBtc\\d+$'], query => "select count(*) from cell_line where uniquename ~ ?"});
     $result{'FBgg'}{$db} = get_count({ dbh => $dbh, bind => ['^FBgg\\d+$'], query => "select count(*) from grp where uniquename ~ ? and is_analysis=false and is_obsolete=false"});
@@ -177,6 +175,7 @@ SQL
     $result{'FBlc'}{$db} = get_count({ dbh => $dbh, bind => ['^FBlc\\d+$'], query => "select count(*) from library where uniquename ~ ? and is_obsolete=false"});
     $result{'FBst'}{$db} = get_count({ dbh => $dbh, bind => ['^FBst\\d+$'], query => "select count(*) from stock where uniquename ~ ? and is_obsolete=false"});
     $result{'FBrf'}{$db} = get_count({ dbh => $dbh, bind => ['^FBrf\\d+$'], query => "select count(*) from pub where uniquename ~ ? and is_obsolete=false"});
+    $result{'FBrf_papers'}{$db} = get_count({ dbh => $dbh, bind => ['^FBrf\\d+$'], query => "select count(*) from pub p join cvterm cvt on (p.type_id=cvt.cvterm_id) where p.uniquename ~ ? and p.is_obsolete=false and cvt.name='paper'"});
     $result{'FBhh'}{$db} = get_count({ dbh => $dbh, bind => ['^FBhh\\d+$'], query => "select count(*) from humanhealth where uniquename ~ ? and is_obsolete=false"});
     $dbh->disconnect;
 }
