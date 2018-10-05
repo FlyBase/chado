@@ -16,32 +16,58 @@ use Try::Tiny;
 
 =head1 NAME
 
-extend_ec_data.pl - Extends associated Enzyme Commission (EC) data in Chado.
+extend_ec_data.pl - Extends Enzyme Commission (EC) data in Chado.
 
 =head1 SYNOPSIS
 
  extend_ec_data.pl [options]
 
  Options:
- --database The database to query.
+ --database The database to query
  --hostname The database hostname
  --username The database user
  --password The database user password
  --port     The database port
- --force
  --help     Print a help message
- --verbose Print extra information to STDERR
- --man Show a man page help doc.
+ --verbose  Print extra information to STDERR
+ --man      Show a man page help doc.
     
 see L<Options> for full details.
 
  e.g.
  ./extend_ec_data.pl --database FB2015_04
- ./extend_ec_data.pl --database FB2015_04 --database FB2015_03
  ./extend_ec_data.pl --hostname myserver.com --username johnsmith --password mypassword --database FB2015_03
 
 =head1 DESCRIPTION
 
+This script adds additional metadata from the Enzyme Commission database
+to EC numbers that are associated with GO terms in Chado.
+
+It pulls down an updated copy of the Enzyme database, queries Chado
+for all existing EC numbers associated with GO terms, and adds the
+EC Description (DE), EC Catalytic activity (CA), and EC class to
+the EC dbxref entry in Chado as a dbxrefprop.
+
+  cvterm[GO Term] -> cvterm_dbxref-> dbxref[EC] --> dbxrefprop
+
+The dbxrefprop types used are below.
+They are inserted into the Chado instance if they are not found.
+
+ * ec_class
+ * ec_catalytic_activity
+ * ec_description
+
+Multiple props of the same type per EC number are possible.  In these
+cases the dbxrefprop.rank column is used to distinguish them.
+
+For example, these 3 lines in the enzyme database file 
+
+  CA ATP + [biotin carboxyl-carrier protein]-biotin-N(6)-L-lysine +
+  CA hydrogencarbonate- = ADP + phosphate + [biotin carboxyl-carrier protein]-
+  CA carboxybiotin-N(6)-L-lysine.
+
+will be converted into 3 dbxrefprops of type 'ec_catalytic_activity' and 
+rank 0, 1, and 2.
 
 =head2 Options
 
@@ -49,8 +75,7 @@ see L<Options> for full details.
 
 =item --database <database name>
 
-The database name to connect to.  Multiple databases can be specified
-by repeating the flag or using a comma delimited list of names.
+The database name to connect to.  
 
 =item --hostname <host>
 
@@ -79,6 +104,30 @@ Print extra information to STDERR during conversion.
 =item --man
 
 Show help as a man page.
+
+=back
+
+=head2 Dependencies
+
+=over 5
+
+B<Perl modules>
+
+=item L<DBI>
+
+=item L<POSIX>
+
+=item L<Getopt::Long>
+
+=item L<Pod::Usage>
+
+=item L<Path::Tiny>
+
+=item L<Try::Tiny>
+
+B<Command line tools>
+
+=item wget, L<https://www.gnu.org/software/wget/>
 
 =back
 
@@ -130,7 +179,6 @@ my $username     = cuserid();
 my $password     = '';
 my $port         = 5432;
 my $db; 
-my $force        = 0;
 
 my $ec_proptypes = {
   DE    => 'ec_description',
@@ -147,7 +195,6 @@ my $getopt = GetOptions(
     'password|passwd=s' => \$password,
     'database|db=s'     => \$db,
     'port=i'            => \$port,
-    'force'             => \$force,
 ) or pod2usage(2);
 
 pod2usage(1) if $help;
@@ -163,7 +210,6 @@ say STDERR "Processing $db" if $verbose;
 # Setup database connection.
 my $dsn = "dbi:Pg:database=$db;host=$host;port=$port";
 my $dbh = DBI->connect($dsn, $username, $password);
-
 $dbh->{AutoCommit} = 0;
 $dbh->{RaiseError} = 1;
 $dbh->{PrintError} = ($verbose == 1) ? 1 : 0;
@@ -173,33 +219,49 @@ $dbh->{PrintError} = ($verbose == 1) ? 1 : 0;
 system('wget -N http://ftp.ebi.ac.uk/pub/databases/enzyme/enzyme.dat');
 system('wget -N http://ftp.ebi.ac.uk/pub/databases/enzyme/enzclass.txt');
 
+# Regex for filtering out transferred or deleted entries.
 my $transf_deleted_regex = qr/^(Transferred|Deleted) entry/;
 
+# Setup Enzyme file objects.
 my $enzyme_dat_file   = path('enzyme.dat');
 my $enzyme_class_file = path('enzclass.txt');
 
+# Parse Enzyme flat files and load into a hashref for lookups.
 my $enzyme_db       = process_enzyme_dat({ files => [$enzyme_dat_file], fields => ['ID','DE','CA'] });
 my $enzyme_class_db = process_enzyme_class({ files => [$enzyme_class_file] });
 
+# Read in the query that fetches all EC numbers.
 my $ec_num_query = path('ec_num_query.sql')->slurp_utf8;
 
+# Checks for the required dbxrefprop types and inserts them.
 my $cvterm_ids = setup_proptypes({ dbh => $dbh, proptypes => $ec_proptypes });
 
+# Fetch the results from the EC query.
 my $ec_results = $dbh->selectall_arrayref($ec_num_query, { Slice => {} });
 
-foreach my $result ( @$ec_results ) {
-  my $ecnum     = $result->{ec};
-  my $dbxref_id = $result->{dbxref_id};
-  my $alt_ecnum = $ecnum . '.-';
+# Sets the number of '?' placeholders to the number of elements
+# in the dbxrefprop type hash.
+my $bind_placeholder = join(',', ('?') x values %{$cvterm_ids});
+# Delete existing dbxrefprops.
+$dbh->do("delete from dbxrefprop where type_id in ($bind_placeholder)", {}, (values %{$cvterm_ids}));
 
-  if ($enzyme_db->{$ecnum}) {
-    my $entry = $enzyme_db->{$ecnum};
-    
+# Loop over each result.
+foreach my $result ( @$ec_results ) {
+  my $ecnum     = $result->{ec};        # EC number from Chado.
+  my $dbxref_id = $result->{dbxref_id}; # Corresponding dbxref_id
+  my $alt_ecnum = $ecnum . '.-';        # Alternate EC number to correct for errors in Chado data from GO.
+
+  my $entry = $enzyme_db->{$ecnum};
+
+  if ($entry) {
     # Skip deleted or transferred entries.
     next if ($entry->{DE} && grep { $_ =~ $transf_deleted_regex } @{$entry->{DE}});
 
+    # Iterate over the fields extracted from the enzyme.dat file
     for my $field (sort { $a cmp $b } keys %{$entry}) {
+      # Some fields are multivalued so we fetch them as an array.
       my @values = @{$entry->{$field}};
+      # Insert the dbxreprop for each value.
       for (my $i=0; $i < scalar @values; $i++) {
         insert_dbxrefprop({
             dbh       => $dbh,
@@ -211,6 +273,7 @@ foreach my $result ( @$ec_results ) {
       }
     }
   }
+  # Insert the dbxrefprop for the Enzyme class
   elsif ($enzyme_class_db->{$ecnum}) {
     insert_dbxrefprop({
         dbh       => $dbh,
@@ -220,7 +283,8 @@ foreach my $result ( @$ec_results ) {
         rank      => 0
       });
   }
-  # Sometimes Chado uses a class ID without a '.-';
+  # Sometimes Chado uses a class ID without a '.-' at the end
+  # so we look for that variant and insert the dbxrefprop.
   elsif ($enzyme_class_db->{$alt_ecnum}) {
     insert_dbxrefprop({
         dbh       => $dbh,
@@ -235,21 +299,22 @@ foreach my $result ( @$ec_results ) {
   }
 }
 
-# Committ all inserts.
+# Commit all inserts.
 $dbh->commit;
 
 #==============
 # End of main
 #============== 
 
+# Function to insert dbxrefprop's for the Enzyme metadata.
 sub insert_dbxrefprop {
   my ($args) = @_;
 
-  my $dbh       = $args->{dbh};
-  my $dbxref_id = $args->{dbxref_id};
-  my $cvterm_id = $args->{cvterm_id};
-  my $value     = $args->{value};
-  my $rank      = $args->{rank};
+  my $dbh       = $args->{dbh};       # Database handle to use.
+  my $dbxref_id = $args->{dbxref_id}; # dbxref_id of the EC number.
+  my $cvterm_id = $args->{cvterm_id}; # cvterm_id to use for the dbxrefprop.type_id column.
+  my $value     = $args->{value};     # The field value.
+  my $rank      = $args->{rank};      # Rank, non-zero for multi-values fields.
 
   try {
     $dbh->do('insert into dbxrefprop (dbxref_id, type_id, value, rank) values (?, ?, ?, ?)',{},($dbxref_id, $cvterm_id, $value, $rank));
@@ -260,6 +325,7 @@ sub insert_dbxrefprop {
 }
 
 
+# Function to parse the Enzyme class file.
 sub process_enzyme_class {
   my ($args) = @_;
 
@@ -269,7 +335,7 @@ sub process_enzyme_class {
 
   # Loop over all files.
   for my $file (@{$args->{files}}) {
-    say STDERR "Working on $file";
+    say STDERR "Working on $file" if $verbose;
     my $fh = $file->openr_utf8;
 
     # Loop over each line of the file.
@@ -277,18 +343,17 @@ sub process_enzyme_class {
       chomp;
       if ($_ =~ $ec_class_regex) {
         my ($id, $name) = ($1, $2);
-
         # Remove the extra spaces from the EC class ID
         $id =~ s/\s+//g;
         $result->{$id} = $name;
       }
-
     }
     close($fh);
   }
   return $result;
 }
 
+# Function to parse the Enzyme.dat file.
 sub process_enzyme_dat {
   my ($args) = @_;
 
@@ -300,7 +365,7 @@ sub process_enzyme_dat {
 
   # Loop over all files.
   for my $file (@{$args->{files}}) {
-    say STDERR "Working on $file";
+    say STDERR "Working on $file" if $verbose;
     my $fh = $file->openr_utf8;
     my $curr_id;
 
@@ -349,15 +414,20 @@ SQL
   my $result;
 
   for my $prop (keys %{$proptypes}) {
+    # Get the full property type name.
     my $name = $proptypes->{$prop};
+    # See if it exists already.
     my $cvterm_id = $dbh->selectrow_array($query,{},$name);
+    # If not, make it.
     if (!$cvterm_id) {
       # Insert new cvterm and get its ID.
       insert_proptype({ dbh => $dbh, prop => $name });
       $cvterm_id = $dbh->selectrow_array($query,{},$name);
     }
+    # Keep track of the cvterm_id.
     $result->{$prop} = $cvterm_id;
   }
+  # Return a hash of the field name (e.g. DE, CA, class) and the cvterm_id assigned to it.
   return $result;
 }
 
