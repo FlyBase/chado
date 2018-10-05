@@ -111,7 +111,7 @@ Show help as a man page.
 
 =over 5
 
-B<Perl modules>
+=item B<Perl modules>
 
 =item L<DBI>
 
@@ -125,7 +125,7 @@ B<Perl modules>
 
 =item L<Try::Tiny>
 
-B<Command line tools>
+=item B<Command line tools>
 
 =item wget, L<https://www.gnu.org/software/wget/>
 
