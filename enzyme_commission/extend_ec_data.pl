@@ -216,8 +216,8 @@ $dbh->{PrintError} = ($verbose == 1) ? 1 : 0;
 
 # Download files if needed.  The -N will examine timestamps and only 
 # fetch if the remote file has been updated.
-system('wget -N http://ftp.ebi.ac.uk/pub/databases/enzyme/enzyme.dat');
-system('wget -N http://ftp.ebi.ac.uk/pub/databases/enzyme/enzclass.txt');
+system('wget -N ftp://ftp.expasy.org/databases/enzyme/enzyme.dat');
+system('wget -N ftp://ftp.expasy.org/databases/enzyme/enzclass.txt');
 
 # Regex for filtering out transferred or deleted entries.
 my $transf_deleted_regex = qr/^(Transferred|Deleted) entry/;
