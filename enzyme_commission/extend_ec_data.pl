@@ -393,6 +393,22 @@ sub process_enzyme_dat {
     close($fh);
   }
 
+  # Stitch multi line catalytic activities back together.
+  for my $id (keys %{$result}) {
+    my $ca = $result->{$id}{'CA'};
+    # Only fix CA fields that have more than one CA.
+    if ($ca && scalar @{$ca} > 1) {
+      my $all_ca = join(' ',@{$ca});
+      # Use positive lookbehind to split on all
+      # zero length strings that are preceded by a period '.'.
+      # This essentially splits each reaction on '.'
+      # without throwing the '.' away.
+      my @split_cas = split(/(?<=\.)\s*/,$all_ca);
+      # Replace the old CA with the stitched CA.
+      $result->{$id}{'CA'} = \@split_cas;
+    }
+  }
+
   return $result;
 }
 
@@ -406,7 +422,7 @@ sub setup_proptypes {
   my $query =<<'SQL';
 select cvterm_id
   from cvterm cvt join cv on (cvt.cv_id=cv.cv_id)
-  where cv.name = 'property type'
+  where cv.name = 'dbxrefprop type'
     and cvt.name = ?
 ;
 SQL
@@ -441,10 +457,10 @@ sub insert_proptype {
   try {
     # Get the db.db_id and cv.cv_id columns for the prop we are trying to create.
     my ($db_id) = $dbh->selectrow_array("select db_id from db where name = 'FlyBase_reporting'");
-    my ($cv_id) = $dbh->selectrow_array("select cv_id from cv where name = 'property type'");
+    my ($cv_id) = $dbh->selectrow_array("select cv_id from cv where name = 'dbxrefprop type'");
 
     # Setup dbxref entry for cvterm and get the dbxref_id;
-    my $acc = "property type:$prop";
+    my $acc = "dbxrefprop type:$prop";
     $dbh->do("insert into dbxref (db_id,accession) values (?,?)",{},($db_id,$acc));
     my ($dbxref_id) = $dbh->selectrow_array("select dbxref_id from dbxref where db_id = ? and accession = ?;", {}, ($db_id, $acc));
 
