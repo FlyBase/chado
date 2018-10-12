@@ -395,17 +395,22 @@ sub process_enzyme_dat {
 
   # Stitch multi line catalytic activities back together.
   for my $id (keys %{$result}) {
-    my $ca = $result->{$id}{'CA'};
-    # Only fix CA fields that have more than one CA.
-    if ($ca && scalar @{$ca} > 1) {
-      my $all_ca = join(' ',@{$ca});
-      # Use positive lookbehind to split on all
-      # zero length strings that are preceded by a period '.'.
-      # This essentially splits each reaction on '.'
-      # without throwing the '.' away.
-      my @split_cas = split(/(?<=\.)\s*/,$all_ca);
-      # Replace the old CA with the stitched CA.
-      $result->{$id}{'CA'} = \@split_cas;
+    for my $field (@{$args->{fields}}) {
+      # Skip the ID field.
+      next if $field eq "ID";
+
+      my $val = $result->{$id}{$field};
+      # Only fix fields that have more than one value.
+      if ($val && scalar @{$val} > 1) {
+        my $all_vals = join(' ',@{$val});
+        # Use positive lookbehind to split on all
+        # zero length strings that are preceded by a period '.'.
+        # This essentially splits each field value on '.'
+        # without throwing the '.' away.
+        my @split_vals = split(/(?<=\.)\s*/,$all_vals);
+        # Replace the old field with the stitched field.
+        $result->{$id}{$field} = \@split_vals;
+      }
     }
   }
 
