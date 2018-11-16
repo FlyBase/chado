@@ -1,4 +1,5 @@
 create schema if not exists flybase;
+grant usage on schema flybase to PUBLIC;
 
 -- Enum type for ID update status.
 drop type if exists flybase.update_status cascade;
@@ -18,6 +19,7 @@ updated_id    flybase.updated_id%rowtype;
 secondary_ids flybase.updated_id[];
 result_row    flybase.updated_id%rowtype;
 num_rows      integer = 0;
+found_id      boolean = false;
 begin
   -- Check if it is a current ID.
   select id, f.uniquename, 'current'
@@ -27,6 +29,7 @@ begin
       and f.is_obsolete = false;
 
   if FOUND then
+    found_id = true;
     return next updated_id; 
   end if;
 
@@ -44,6 +47,7 @@ begin
   num_rows = array_length(secondary_ids,1);
 
   if num_rows > 0 then 
+    found_id = true;
     for result_row in select * from unnest(secondary_ids)
     loop
       -- If more than one row is found it is due to a split.
@@ -52,6 +56,10 @@ begin
       end if;
       return next result_row;
     end loop;
+  end if;
+
+  if not found_id then
+    return next (id,null,null)::flybase.updated_id;
   end if;
   return;
 end
