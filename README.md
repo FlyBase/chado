@@ -2,7 +2,6 @@
 
 Chado related code for FlyBase
 
-
 ## Scripts
 
 ### Statistics
@@ -15,3 +14,9 @@ A script for calculating counts of FlyBase data classes for a release.
 **[extend_ec_data.pl](enzyme_commission/extend_ec_data.pl) -**
 A script for pulling in Enzyme metadata and adding it to EC dbxref entries in Chado.
 
+## Schema
+
+## Utility functions
+
+**[IDs](schema/ids/) -**
+FlyBase ID related functions for Chado.
