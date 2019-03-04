@@ -11,13 +11,23 @@ target feature.
 Multiple relationship types and data classes can be specified by seperating them by pipe symbols
 e.g.
 
-select * from flybase.get_feature_relationship_subject('FBgn0000490', 'associated_with|partof', 'FBti|FBtr')
-select * from flybase.get_feature_relationship_subject('FBgn0000490', 'orthologous_to', 'FBgn|FBog')
+-- Single IDs
+select * from flybase.get_feature_relationship('FBgn0000490', 'associated_with|partof', 'FBti|FBtr');
+select * from flybase.get_feature_relationship('FBgn0000490', 'alleleof', 'FBal');
+select * from flybase.get_feature_relationship('FBgn0000490', 'alleleof', 'FBal', 'subject');
+select * from flybase.get_feature_relationship('FBgn0000490', 'orthologous_to', 'FBgn|FBog');
+
+-- Multiple IDs
+select *
+   from flybase.get_feature_relationship((select array_agg(f.uniquename) from feature f where uniquename in ('FBgn0000490','FBgn0013765')), 'alleleof', NULL,'subject')
+;
 
 If the data class is ommitted then all related feature rows are returned.
 If the direction is ommitted then the subject direction is assumed.
 
 If you want to pass a direction but omit the data class, use NULL for the data class value.
+
+select * from flybase.get_feature_relationship('FBgn0000490', 'alleleof', NULL, 'subject');
 
 */
 create or replace function flybase.get_feature_relationship(id text, relationship_type text, data_class text default '%', direction text default 'subject')
