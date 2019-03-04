@@ -5,7 +5,7 @@ grant usage on schema flybase to PUBLIC;
 -- specified FlyBase ID and the type (symbol, fullname, etc.).
 -- Returns a single value or null.
 create or replace function flybase.current_synonym(id text, synonym_type text)
-returns text as $$
+returns varchar(255) as $$
 declare
   -- The synonym.synonym_sgml value to return.
   synonym text;
@@ -58,7 +58,7 @@ comment on function flybase.current_synonym(text, text) is 'Given a feature.uniq
 
 -- Function to fetch the current symbol
 create or replace function flybase.current_symbol(id text)
-returns text as $$
+returns varchar(255) as $$
 declare
   field text = 'symbol';
 begin
@@ -69,7 +69,7 @@ comment on function flybase.current_symbol(text) is 'Given a feature.uniquename,
 
 -- Function to fetch the current fullname.
 create or replace function flybase.current_fullname(id text)
-returns text as $$
+returns varchar(255) as $$
 declare
   field text = 'fullname';
 begin
