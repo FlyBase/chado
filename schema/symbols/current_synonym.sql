@@ -8,7 +8,7 @@ create or replace function flybase.current_synonym(id text, synonym_type text)
 returns varchar(255) as $$
 declare
   -- The synonym.synonym_sgml value to return.
-  synonym text;
+  synonym varchar(255);
   -- Variables to vary which tables and fields we are using to resolve the synonyms.
   linker_table text = 'feature_synonym';
   object_table text = 'feature';

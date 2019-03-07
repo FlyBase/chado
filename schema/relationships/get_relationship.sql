@@ -78,6 +78,7 @@ begin
         where feature1.uniquename = %L
           and cvt.name similar to %L
           and flybase.data_class(feature2.uniquename) similar to %L
+          and feature2.is_obsolete = false
       ', feature1_linker, feature2_linker, id, relationship_type, local_data_class)
     ;
   end loop;

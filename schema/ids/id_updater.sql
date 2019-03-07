@@ -15,11 +15,11 @@ create type flybase.updated_id as (
 
 create or replace function flybase.update_ids (id text) returns setof flybase.updated_id as $$
 declare
-updated_id    flybase.updated_id%rowtype;
-secondary_ids flybase.updated_id[];
-result_row    flybase.updated_id%rowtype;
-num_rows      integer = 0;
-found_id      boolean = false;
+  updated_id    flybase.updated_id%rowtype;
+  secondary_ids flybase.updated_id[];
+  result_row    flybase.updated_id%rowtype;
+  num_rows      integer = 0;
+  found_id      boolean = false;
 begin
   -- Check if it is a current ID.
   select id, f.uniquename, 'current'
@@ -70,7 +70,7 @@ comment on function flybase.update_ids(text) is 'Accepts a single FlyBase ID and
 -- Function to operate on a list of IDs.
 create or replace function flybase.update_ids (ids text[]) returns setof flybase.updated_id as $$
 declare
-id text;
+  id text;
 begin
   foreach id in array ids loop 
     return query select * from flybase.update_ids(id);
