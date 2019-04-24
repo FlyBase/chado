@@ -16,6 +16,8 @@ The following will install the flybase schema with all functions into `mydb`.
 Change this to whatever your local database name is.
 
 ```bash
+> git clone git@github.com:FlyBase/chado.git
+> cd chado/schema
 > psql -f apply-flybase-schema.sql mydb
 ```
 
