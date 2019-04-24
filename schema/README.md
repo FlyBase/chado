@@ -7,7 +7,7 @@ All functions are stored in the **flybase** schema in whatever database you spec
 
 ## Documentaiton
 
-* (Full docs)[https://flybase.github.io/docs/chado/functions]
+* [Full docs](https://flybase.github.io/docs/chado/functions)
 
 ## Install
 
