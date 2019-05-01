@@ -31,35 +31,36 @@ begin
   if FOUND then
     found_id = true;
     return next updated_id; 
-  end if;
+  else
+    -- Check for a secondary ID due to a merge or a split.
+    secondary_ids = array(
+      select row(id, f.uniquename, 'updated')
+        from feature f join feature_dbxref fdbx on (f.feature_id=fdbx.feature_id)
+                       join dbxref dbx on (fdbx.dbxref_id=dbx.dbxref_id)
+                       join db on (dbx.db_id=db.db_id)
+        where fdbx.is_current=false
+          and dbx.accession=id
+          and lower(db.name) = 'flybase'
+          and upper(flybase.data_class(f.uniquename)) = upper(flybase.data_class(id))
+          and f.is_obsolete = false);
 
-  -- Check for a secondary ID due to a merge or a split.
-  secondary_ids = array(
-    select row(id, f.uniquename, 'updated')
-      from feature f join feature_dbxref fdbx on (f.feature_id=fdbx.feature_id)
-                     join dbxref dbx on (fdbx.dbxref_id=dbx.dbxref_id)
-                     join db on (dbx.db_id=db.db_id)
-      where fdbx.is_current=false
-        and dbx.accession=id
-        and lower(db.name) = 'flybase'
-        and f.is_obsolete = false);
+    num_rows = array_length(secondary_ids,1);
 
-  num_rows = array_length(secondary_ids,1);
+    if num_rows > 0 then 
+      found_id = true;
+      for result_row in select * from unnest(secondary_ids)
+      loop
+        -- If more than one row is found it is due to a split.
+        if num_rows > 1 then
+          result_row.status = 'split';
+        end if;
+        return next result_row;
+      end loop;
+    end if;
 
-  if num_rows > 0 then 
-    found_id = true;
-    for result_row in select * from unnest(secondary_ids)
-    loop
-      -- If more than one row is found it is due to a split.
-      if num_rows > 1 then
-        result_row.status = 'split';
-      end if;
-      return next result_row;
-    end loop;
-  end if;
-
-  if not found_id then
-    return next (id,null,null)::flybase.updated_id;
+    if not found_id then
+      return next (id,null,null)::flybase.updated_id;
+    end if;
   end if;
   return;
 end
