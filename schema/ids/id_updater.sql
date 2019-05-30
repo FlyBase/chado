@@ -64,7 +64,7 @@ begin
   end if;
   return;
 end
-$$ language plpgsql;
+$$ language plpgsql stable;
 
 comment on function flybase.update_ids(text) is 'Accepts a single FlyBase ID and tries to validate and update it based on the current database.  Returns a 3 column result set of the submitted ID, updated ID, and conversion status.';
 
@@ -78,6 +78,6 @@ begin
   end loop;
   return;
 end
-$$ language plpgsql;
+$$ language plpgsql stable;
 
 comment on function flybase.update_ids(text[]) is 'Accepts an array of FlyBase IDs and tries to validate and update it based on the current database.  Returns a 3 column result set of the submitted ID, updated ID, and conversion status.'

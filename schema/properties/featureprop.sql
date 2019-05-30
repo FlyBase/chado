@@ -11,5 +11,5 @@ returns setof featureprop as $$
       and cvt.name similar to $2
       and cvt.is_obsolete = 0
   ;
-$$ language sql;
+$$ language sql stable;
 

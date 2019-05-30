@@ -1,5 +1,5 @@
 -- Import ID utility functions
-\ir ids/utils.sql
+\ir data_classes/utils.sql
 
 -- Import FBgn ID updater.
 \ir ids/id_updater.sql

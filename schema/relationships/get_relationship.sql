@@ -39,15 +39,15 @@ begin
   -- Call the main function with an array of a single ID.
   return query select * from flybase.get_feature_relationship(ids, relationship_type, data_class, direction);
 end
-$$ language plpgsql;
+$$ language plpgsql stable;
 comment on function flybase.get_feature_relationship(text, text, text, text) is 'Given a feature.uniquename, relationship type, a FlyBase data class (default: all), and a chado feature_relationship direction (default: subject), fetches the corresponding relationships';
 
 create or replace function flybase.get_feature_relationship(ids text[], relationship_type text, data_class text default '%', direction text default 'subject')
 returns table(feature_relationship_id integer, object_id integer, subject_id integer, uniquename text, symbol varchar(255), rank integer, value text, type varchar(1024)) as $$
 declare
   id text;
-  feature1_linker text = 'object_id';
-  feature2_linker text = 'subject_id';
+  linker1 text = 'object_id';
+  linker2 text = 'subject_id';
   local_data_class text = data_class;
 begin
   if data_class is NULL then
@@ -56,8 +56,8 @@ begin
 
   -- Swap directions if we are looking in the object direction.
   if direction = 'object' then
-    feature1_linker = 'subject_id';
-    feature2_linker = 'object_id';
+    linker1 = 'subject_id';
+    linker2 = 'object_id';
   end if;
 
   foreach id in array ids
@@ -73,18 +73,18 @@ begin
              fr.value,
              cvt.name
         from feature feature1 join feature_relationship fr on feature1.feature_id = fr.%I
-                              join feature feature2  on fr.%I = feature2.feature_id
+                              join feature feature2  on feature2.feature_id = fr.%I 
                               join cvterm cvt on fr.type_id = cvt.cvterm_id
         where feature1.uniquename = %L
           and cvt.name similar to %L
           and flybase.data_class(feature2.uniquename) similar to %L
           and feature2.is_obsolete = false
-      ', feature1_linker, feature2_linker, id, relationship_type, local_data_class)
+      ', linker1, linker2, id, relationship_type, local_data_class)
     ;
   end loop;
 
   return;
 end
-$$
-language plpgsql;
+$$ language plpgsql stable;
+
 comment on function flybase.get_feature_relationship(text[], text, text, text) is 'Given an array of feature.uniquename, relationship type, a FlyBase data class (default: all), and a chado feature_relationship direction (default: subject), fetches the corresponding relationships';

@@ -73,7 +73,7 @@ begin
   -- Return the synonym.
   return synonym;
 end
-$$ language plpgsql;
+$$ language plpgsql stable;
 comment on function flybase.current_synonym(text, text) is 'Given a feature.uniquename and a synonym type, it retrieves a single synonym that is the current value of the type or null.';
 
 -- Function to fetch the current symbol
@@ -84,7 +84,7 @@ declare
 begin
   return flybase.current_synonym(id, field);
 end
-$$ language plpgsql;
+$$ language plpgsql stable;
 comment on function flybase.current_symbol(text) is 'Given a feature.uniquename, this function returns a single current symbol or null if none exists.';
 
 -- Function to fetch the current fullname.
@@ -95,5 +95,5 @@ declare
 begin
   return flybase.current_synonym(id, field);
 end
-$$ language plpgsql;
+$$ language plpgsql stable;
 comment on function flybase.current_fullname(text) is 'Given a feature.uniquename, this function returns a single current fullname or null if none exists.';

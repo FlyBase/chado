@@ -13,5 +13,5 @@ begin
   -- Format and return it.
   return upper(substring(data_class from 1 for 2)) || lower(substring(data_class from 3 for 2));
 end
-$$ language plpgsql;
+$$ language plpgsql stable;
 comment on function flybase.data_class(text) is 'Given a FlyBase ID returns the data class prefix e.g. FBgn0000490 -> FBgn';
