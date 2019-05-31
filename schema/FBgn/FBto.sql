@@ -45,7 +45,7 @@ create table gene.allele
        )
        ) AS propagate_transgenic_uses
   FROM flybase.gene AS fbgn JOIN flybase.get_feature_relationship(fbgn.uniquename,'alleleof','FBal') AS fbal ON (fbgn.feature_id=fbal.object_id)
-  WHERE fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0030318')
+  WHERE fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
 ;
 
 ALTER TABLE gene.allele ADD PRIMARY KEY (id);
@@ -74,9 +74,9 @@ CREATE TABLE gene.allele_class
 ;
 ALTER TABLE gene.allele_class ADD PRIMARY KEY (id);
 ALTER TABLE gene.allele_class ADD CONSTRAINT allele_class_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
-CREATE INDEX allele_class_idx1 on gene.allele_class (allele_id);
-CREATE INDEX allele_class_idx2 on gene.allele_class (name);
-CREATE INDEX allele_class_idx3 on gene.allele_class (fbcv_id);
+CREATE INDEX allele_class_idx1 ON gene.allele_class (allele_id);
+CREATE INDEX allele_class_idx2 ON gene.allele_class (name);
+CREATE INDEX allele_class_idx3 ON gene.allele_class (fbcv_id);
  
  /*
  Table to hold the insertions that are directly associated with a particular allele.
@@ -86,23 +86,76 @@ DROP SEQUENCE IF EXISTS insertion_id_seq;
 CREATE SEQUENCE insertion_id_seq;
 CREATE TABLE gene.insertion
   AS SELECT DISTINCT ON (fbal.fbal_id, fbti.uniquename)
-            nextval('insertion_id_seq') as id,
-            fbal.id as allele_id,
+            nextval('insertion_id_seq') AS id,
             fbti.uniquename AS fbti_id,
-            fbti.symbol AS symbol
-       from gene.allele AS fbal JOIN feature f on (fbal.fbal_id = f.uniquename)
+            fbti.symbol AS symbol,
+            fbal.id AS allele_id,
+            NULL::bigint AS gene_id
+       FROM gene.allele AS fbal JOIN feature f on (fbal.fbal_id = f.uniquename)
                                 JOIN flybase.get_feature_relationship(fbal.fbal_id, 'associated_with', 'FBti', 'object') AS fbti
-                                  on (f.feature_id = fbti.subject_id) 
+                                  ON (f.feature_id = fbti.subject_id) 
+     UNION
+     /*
+     The following select pulls in insertions that are known to be expressed in 
+     the pattern of gene X, but which are not know to cause an allele of gene X.
+     */
+     SELECT DISTINCT ON (fbgn.feature_id, fbti.uniquename)
+            nextval('insertion_id_seq') as id,
+            fbti.uniquename AS fbti_id,
+            fbti.symbol AS symbol,
+            NULL::bigint AS allele_id,
+            fbgn.feature_id AS gene_id
+       FROM flybase.gene AS fbgn JOIN flybase.get_feature_relationship(fbgn.uniquename, 'attributed_as_expression_of','FBtr|FBpp') AS fbtr_fbpp
+                                   ON fbgn.feature_id = fbtr_fbpp.object_id
+                                 JOIN flybase.get_feature_relationship(fbtr_fbpp.uniquename,'associated_with','FBal','object') AS fbal
+                                   ON fbtr_fbpp.subject_id = fbal.subject_id
+                                 JOIN flybase.get_feature_relationship(fbal.uniquename,'associated_with','FBti','object') as fbti
+                                   ON fbal.object_id = fbti.subject_id
+       WHERE fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
+         /** Make sure it doesn't have an associated allele **/
+         AND NOT EXISTS (
+           SELECT 1
+             FROM flybase.get_feature_relationship(fbti.uniquename,'associated_with','FBal') as fbal2
+               JOIN flybase.get_feature_relationship(fbal2.uniquename,'alleleof','FBgn','object') as fbgn2
+                 ON fbal2.subject_id = fbgn2.subject_id
+             WHERE fbgn2.object_id = fbgn.feature_id
+         )
+     UNION
+     /*
+     The following query pulls in insertions that overlap with the gene span.
+     It uses the built-in chado function feature_overlaps to perform that logic.
+     */
+     SELECT DISTINCT ON (fbgn.feature_id, fbti.uniquename)
+            nextval('insertion_id_seq') as id,
+            fbti.uniquename AS fbti_id,
+            flybase.current_symbol(fbti.uniquename) AS symbol,
+            NULL::bigint AS allele_id,
+            fbgn.feature_id AS gene_id
+       FROM flybase.gene AS fbgn LEFT JOIN LATERAL feature_overlaps(fbgn.feature_id) fbti ON TRUE
+       WHERE fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
+         AND flybase.data_class(fbti.uniquename) = 'FBti'
+         /** Make sure it doesn't have an associated allele **/
+         AND NOT EXISTS (
+           SELECT 1
+             FROM flybase.get_feature_relationship(fbti.uniquename,'associated_with','FBal') as fbal2
+               JOIN flybase.get_feature_relationship(fbal2.uniquename,'alleleof','FBgn','object') as fbgn2
+                 ON fbal2.subject_id = fbgn2.subject_id
+             WHERE fbgn2.object_id = fbgn.feature_id
+         )
 ;
 ALTER TABLE gene.insertion ADD PRIMARY KEY (id);
 ALTER TABLE gene.insertion ADD CONSTRAINT insertion_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
+-- Can't create a foreign key between a table and a materialized view.
+--ALTER TABLE gene.insertion ADD CONSTRAINT insertion_fk2 FOREIGN KEY (gene_id) REFERENCES flybase.gene (feature_id);
 CREATE INDEX insertion_idx1 on gene.insertion (allele_id);
 CREATE INDEX insertion_idx2 on gene.insertion (fbti_id);
 CREATE INDEX insertion_idx3 on gene.insertion (symbol);
+CREATE INDEX insertion_idx4 on gene.insertion (gene_id);
 
 
 /*
-
+Constructs that are either produced by an insertion or 
+associated with an allele.
 */
 DROP TABLE IF EXISTS gene.construct CASCADE;
 DROP SEQUENCE IF EXISTS construct_id_seq;
@@ -113,7 +166,7 @@ CREATE TABLE gene.construct
             fbtp.uniquename AS fbtp_id,
             fbtp.symbol AS symbol,
             fbti.id as insertion_id,
-            NULL as allele_id
+            NULL::bigint as allele_id
        FROM gene.insertion AS fbti join feature f on (fbti.fbti_id = f.uniquename)
               join flybase.get_feature_relationship(fbti.fbti_id, 'producedby', 'FBtp|FBmc|FBms', 'object') AS fbtp
                 on (f.feature_id = fbtp.subject_id)
@@ -122,7 +175,7 @@ CREATE TABLE gene.construct
             nextval('construct_id_seq') as id,
             fbtp.uniquename AS fbtp_id,
             fbtp.symbol AS symbol,
-            NULL as insertion_id,
+            NULL::bigint as insertion_id,
             fbal.id as allele_id
        FROM gene.allele AS fbal join feature f on (fbal.fbal_id = f.uniquename)
               join flybase.get_feature_relationship(fbal.fbal_id, 'associated_with', 'FBtp|FBmc|FBms', 'object') AS fbtp
@@ -137,91 +190,41 @@ CREATE INDEX construct_idx4 on gene.construct (allele_id);
 ALTER TABLE gene.construct ADD CONSTRAINT construct_fk1 FOREIGN KEY (insertion_id) REFERENCES gene.insertion (id);
 ALTER TABLE gene.construct ADD CONSTRAINT construct_fk2 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 
--- /** Insertion construct tool use **/
--- DROP TABLE IF EXISTS gene.insertion_construct_tool_use CASCADE;
--- DROP SEQUENCE IF EXISTS insertion_construct_tool_use_id_seq;
--- CREATE SEQUENCE insertion_construct_tool_use_id_seq;
--- CREATE TABLE gene.insertion_construct_tool_use
---   -- Get all tool_uses associated with the insertion construct.
---   AS SELECT DISTINCT ON (fbtp.fbtp_id, cvt.name)
---             nextval('insertion_construct_tool_use_id_seq') as id,
---             fbtp.fbtp_id,
---             cvt.name as name,
---             db.name || ':' || dbx.accession as fbcv_id
---        FROM gene.insertion_construct fbtp JOIN feature_cvterm fcvt ON (fbal.fbal_feature_id = fcvt.feature_id)
---                              JOIN feature_cvtermprop fcvtp on (fcvt.feature_cvterm_id = fcvtp.feature_cvterm_id)
---                              JOIN cvterm fcvtp_type on (fcvtp.type_id = fcvtp_type.cvterm_id)
---                              JOIN cvterm cvt on (fcvt.cvterm_id = cvt.cvterm_id)
---                              JOIN dbxref dbx on (cvt.dbxref_id = dbx.dbxref_id)
---                              JOIN db on (dbx.db_id = db.db_id)
---        WHERE fcvtp_type.name = 'tool_uses'
--- ;
-
--- ALTER TABLE gene.allele_tool_use ADD PRIMARY KEY (id);
--- CREATE INDEX tool_use_idx1 on gene.allele_tool_use (fbcv_id);
--- CREATE INDEX tool_use_idx2 on gene.allele_tool_use (name);
--- ALTER TABLE gene.allele_tool_use ADD CONSTRAINT tool_use_fk1 FOREIGN KEY (fbid) REFERENCES gene.allele (fbal_id);
-
--- /** 
--- Table to hold all constructs that are associated with the allele
-
--- FBal ---<associated_with>---> FBtp
--- **/
--- DROP TABLE IF EXISTS gene.associated_construct CASCADE;
--- CREATE TABLE gene.associated_construct
---   AS select fbgn_fbal.fbal_id,
---             fbtp.uniquename AS fbtp_id,
---             fbtp.symbol AS fbtp_symbol,
---             fbtp.object_id as fbtp_feature_id
---        from gene.allele AS fbgn_fbal
---             join
---             flybase.get_feature_relationship(fbgn_fbal.fbal_id, 'associated_with', 'FBtp|FBmc|FBms', 'object') AS fbtp
---             on (fbgn_fbal.fbal_feature_id = fbtp.subject_id)
--- ;
--- ALTER TABLE gene.associated_construct ADD CONSTRAINT associated_construct_fk1 FOREIGN KEY (fbal_id) REFERENCES gene.allele (fbal_id);
-
--- /**
-
--- Tools that are associated with the construct.
-
--- **/
--- DROP TABLE IF EXISTS gene.construct_tool CASCADE;
--- DROP SEQUENCE IF EXISTS construct_tool_id_seq;
--- CREATE SEQUENCE construct_tool_id_seq;
--- CREATE TABLE gene.construct_tool
---   AS SELECT DISTINCT on (fbtp.fbtp_id, fbto.uniquename)
---             nextval('construct_tool_id_seq') as id,
---             fbtp.id as insertion_construct_id,
---             fbto.uniquename AS fbto_id,
---             fbto.symbol AS fbto_symbol,
---             fbto.object_id as fbto_feature_id
---        FROM gene.insertion_construct AS fbtp
---             join
---             flybase.get_feature_relationship(fbtp.fbtp_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto', 'object') AS fbto
---             on (fbtp.fbtp_feature_id = fbto.subject_id)
--- ;
--- ALTER TABLE gene.construct_tool ADD PRIMARY KEY (id);
--- CREATE INDEX construct_tool_idx1 on gene.construct_tool (fbto_id);
--- ALTER TABLE gene.construct_tool ADD CONSTRAINT construct_tool_fk1 FOREIGN KEY (insertion_construct_id) REFERENCES gene.insertion_construct (id);
-
--- /**
-
--- Tools that are associated with the allele.
-
--- **/
--- DROP TABLE IF EXISTS gene.allele_tool CASCADE;
--- CREATE TABLE gene.allele_tool
---   AS SELECT fbgn_fbal.fbal_id,
---             FBto.uniquename AS fbto_id,
---             FBto.symbol AS fbto_symbol,
---             FBto.type AS rel_type
---        FROM gene.allele AS fbgn_fbal
---             join
---             flybase.get_feature_relationship(fbgn_fbal.fbal_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto', 'object') AS FBto
---             on (fbgn_fbal.fbal_feature_id = fbto.subject_id)
--- ;
-
--- ALTER TABLE gene.allele_tool ADD CONSTRAINT tool_fk1 FOREIGN KEY (fbal_id) REFERENCES gene.allele (fbal_id);
+/*
+Tools that are related to either the construct or allele.
+*/
+DROP TABLE IF EXISTS gene.tool CASCADE;
+DROP SEQUENCE IF EXISTS tool_id_seq;
+CREATE SEQUENCE tool_id_seq;
+CREATE TABLE gene.tool
+  AS SELECT nextval('tool_id_seq') as id,
+            fbto.uniquename AS fbto_id,
+            fbto.symbol AS symbol,
+            fbto.type as rel_type,
+            fbtp.id as construct_id,
+            NULL::bigint as allele_id
+       FROM gene.construct AS fbtp JOIN feature f ON (fbtp.fbtp_id = f.uniquename)
+                                   JOIN flybase.get_feature_relationship(fbtp.fbtp_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto', 'object') AS fbto
+                                     ON (f.feature_id = fbto.subject_id)
+       UNION
+       SELECT nextval('tool_id_seq') as id,
+            fbto.uniquename AS fbto_id,
+            fbto.symbol AS symbol,
+            fbto.type as rel_type,
+            NULL::bigint as construct_id,
+            fbal.id as allele_id
+         FROM gene.allele AS fbal JOIN feature f ON (fbal.fbal_id = f.uniquename)
+                                  JOIN flybase.get_feature_relationship(fbal.fbal_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto', 'object') AS fbto
+                                    ON (f.feature_id = fbto.subject_id)
+;
+ALTER TABLE gene.tool ADD PRIMARY KEY (id);
+CREATE INDEX tool_idx1 on gene.tool (fbto_id);
+CREATE INDEX tool_idx2 on gene.tool (symbol);
+CREATE INDEX tool_idx3 on gene.tool (rel_type);
+CREATE INDEX tool_idx4 on gene.tool (construct_id);
+CREATE INDEX tool_idx5 on gene.tool (allele_id);
+ALTER TABLE gene.tool ADD CONSTRAINT tool_fk1 FOREIGN KEY (construct_id) REFERENCES gene.construct (id);
+ALTER TABLE gene.tool ADD CONSTRAINT tool_fk2 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 
 /* Tool Use */
 DROP TABLE IF EXISTS gene.tool_use CASCADE;
@@ -229,13 +232,13 @@ DROP SEQUENCE IF EXISTS tool_use_id_seq;
 CREATE SEQUENCE tool_use_id_seq;
 CREATE TABLE gene.tool_use
   -- Get all tool_uses associated with the alleles.
-  AS SELECT DISTINCT ON (fbal.fbal_id, cvt.name)
+  AS SELECT 
             nextval('tool_use_id_seq') as id,
             cvt.name as name,
             db.name || ':' || dbx.accession as fbcv_id,
             fbal.id as allele_id,
-            NULL as construct_id,
-            NULL as tool_id
+            NULL::bigint as construct_id,
+            NULL::bigint as tool_id
        FROM gene.allele fbal JOIN feature f ON (fbal.fbal_id = f.uniquename)
                              JOIN feature_cvterm fcvt ON (f.feature_id = fcvt.feature_id)
                              JOIN feature_cvtermprop fcvtp on (fcvt.feature_cvterm_id = fcvtp.feature_cvterm_id)
@@ -245,14 +248,30 @@ CREATE TABLE gene.tool_use
                              JOIN db on (dbx.db_id = db.db_id)
        WHERE fcvtp_type.name = 'tool_uses'
      UNION
-     SELECT DISTINCT ON (fbtp.fbtp_id, cvt.name)
+     SELECT 
             nextval('tool_use_id_seq') as id,
             cvt.name as name,
             db.name || ':' || dbx.accession as fbcv_id,
-            NULL as allele_id,
+            NULL::bigint as allele_id,
             fbtp.id as construct_id,
-            NULL as tool_id
+            NULL::bigint as tool_id
        FROM gene.construct fbtp JOIN feature f ON (fbtp.fbtp_id = f.uniquename)
+                             JOIN feature_cvterm fcvt ON (f.feature_id = fcvt.feature_id)
+                             JOIN feature_cvtermprop fcvtp on (fcvt.feature_cvterm_id = fcvtp.feature_cvterm_id)
+                             JOIN cvterm fcvtp_type on (fcvtp.type_id = fcvtp_type.cvterm_id)
+                             JOIN cvterm cvt on (fcvt.cvterm_id = cvt.cvterm_id)
+                             JOIN dbxref dbx on (cvt.dbxref_id = dbx.dbxref_id)
+                             JOIN db on (dbx.db_id = db.db_id)
+       WHERE fcvtp_type.name = 'tool_uses'
+     UNION
+     SELECT 
+            nextval('tool_use_id_seq') as id,
+            cvt.name as name,
+            db.name || ':' || dbx.accession as fbcv_id,
+            NULL::bigint as allele_id,
+            NULL::bigint as construct_id,
+            fbto.id as tool_id
+       FROM gene.tool fbto JOIN feature f ON (fbto.fbto_id = f.uniquename)
                              JOIN feature_cvterm fcvt ON (f.feature_id = fcvt.feature_id)
                              JOIN feature_cvtermprop fcvtp on (fcvt.feature_cvterm_id = fcvtp.feature_cvterm_id)
                              JOIN cvterm fcvtp_type on (fcvtp.type_id = fcvtp_type.cvterm_id)
@@ -270,3 +289,4 @@ CREATE INDEX tool_use_idx4 on gene.tool_use (construct_id);
 CREATE INDEX tool_use_idx5 on gene.tool_use (tool_id);
 ALTER TABLE gene.tool_use ADD CONSTRAINT tool_use_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 ALTER TABLE gene.tool_use ADD CONSTRAINT tool_use_fk2 FOREIGN KEY (construct_id) REFERENCES gene.construct (id);
+ALTER TABLE gene.tool_use ADD CONSTRAINT tool_use_fk3 FOREIGN KEY (tool_id) REFERENCES gene.tool (id);
