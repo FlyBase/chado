@@ -18,4 +18,5 @@ and a materialized view.
 See
 https://www.graphile.org/postgraphile/smart-comments/#constraints
 */
-COMMENT ON MATERIALIZED VIEW flybase.gene is E'@foreignKey (feature_id) references gene.insertion (gene_id)';
+COMMENT ON MATERIALIZED VIEW flybase.gene IS E'@foreignKey (feature_id) REFERENCES gene.allele (gene_id)';
+COMMENT ON MATERIALIZED VIEW flybase.gene IS E'@foreignKey (feature_id) REFERENCES gene.insertion (gene_id)';

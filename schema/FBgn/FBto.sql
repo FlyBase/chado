@@ -13,6 +13,7 @@ create table gene.allele
        fbal.uniquename AS fbal_id,
        -- Allele symbol
        fbal.symbol AS symbol,
+       fbgn.feature_id AS gene_id,
        /*
        A boolean field indicating whether or not the allele is a classical / insertion allele
        or is associated with transgenic construct.
@@ -53,6 +54,7 @@ CREATE INDEX allele_idx1 on gene.allele (fbal_id);
 CREATE INDEX allele_idx2 on gene.allele (symbol);
 CREATE INDEX allele_idx3 on gene.allele (is_construct);
 CREATE INDEX allele_idx4 on gene.allele (propagate_transgenic_uses);
+COMMENT ON TABLE gene.allele is E'@foreignKey (gene_id) references flybase.gene (feature_id)';
 
 /* Allele class table */
 DROP TABLE IF EXISTS gene.allele_class;
@@ -151,6 +153,7 @@ CREATE INDEX insertion_idx1 on gene.insertion (allele_id);
 CREATE INDEX insertion_idx2 on gene.insertion (fbti_id);
 CREATE INDEX insertion_idx3 on gene.insertion (symbol);
 CREATE INDEX insertion_idx4 on gene.insertion (gene_id);
+COMMENT ON TABLE gene.insertion is E'@foreignKey (gene_id) references flybase.gene (feature_id)';
 
 
 /*
@@ -161,7 +164,7 @@ DROP TABLE IF EXISTS gene.construct CASCADE;
 DROP SEQUENCE IF EXISTS construct_id_seq;
 CREATE SEQUENCE construct_id_seq;
 CREATE TABLE gene.construct
-  AS SELECT DISTINCT on (fbti.fbti_id, fbtp.uniquename)
+  AS SELECT 
             nextval('construct_id_seq') as id,
             fbtp.uniquename AS fbtp_id,
             fbtp.symbol AS symbol,
@@ -171,7 +174,7 @@ CREATE TABLE gene.construct
               join flybase.get_feature_relationship(fbti.fbti_id, 'producedby', 'FBtp|FBmc|FBms', 'object') AS fbtp
                 on (f.feature_id = fbtp.subject_id)
      UNION
-     SELECT DISTINCT on (fbal.fbal_id, fbtp.uniquename)
+     SELECT 
             nextval('construct_id_seq') as id,
             fbtp.uniquename AS fbtp_id,
             fbtp.symbol AS symbol,
