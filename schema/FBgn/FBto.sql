@@ -46,7 +46,8 @@ create table gene.allele
        )
        ) AS propagate_transgenic_uses
   FROM flybase.gene AS fbgn JOIN flybase.get_feature_relationship(fbgn.uniquename,'alleleof','FBal') AS fbal ON (fbgn.feature_id=fbal.object_id)
-  WHERE fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
+  -- Uncomment line below for testing.
+  -- WHERE fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
 ;
 
 ALTER TABLE gene.allele ADD PRIMARY KEY (id);
@@ -113,9 +114,10 @@ CREATE TABLE gene.insertion
                                    ON fbtr_fbpp.subject_id = fbal.subject_id
                                  JOIN flybase.get_feature_relationship(fbal.uniquename,'associated_with','FBti','object') as fbti
                                    ON fbal.object_id = fbti.subject_id
-       WHERE fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
+       WHERE -- fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
+         -- AND
          /** Make sure it doesn't have an associated allele **/
-         AND NOT EXISTS (
+         NOT EXISTS (
            SELECT 1
              FROM flybase.get_feature_relationship(fbti.uniquename,'associated_with','FBal') as fbal2
                JOIN flybase.get_feature_relationship(fbal2.uniquename,'alleleof','FBgn','object') as fbgn2
@@ -134,8 +136,9 @@ CREATE TABLE gene.insertion
             NULL::bigint AS allele_id,
             fbgn.feature_id AS gene_id
        FROM flybase.gene AS fbgn LEFT JOIN LATERAL feature_overlaps(fbgn.feature_id) fbti ON TRUE
-       WHERE fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
-         AND flybase.data_class(fbti.uniquename) = 'FBti'
+       WHERE -- fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
+         -- AND
+         flybase.data_class(fbti.uniquename) = 'FBti'
          /** Make sure it doesn't have an associated allele **/
          AND NOT EXISTS (
            SELECT 1
