@@ -45,17 +45,17 @@ create table gene.allele
               where fp.value = 'n'
        )
        ) AS propagate_transgenic_uses
-  FROM flybase.gene AS fbgn JOIN flybase.get_feature_relationship(fbgn.uniquename,'alleleof','FBal') AS fbal ON (fbgn.feature_id=fbal.object_id)
+  FROM gene.gene AS fbgn JOIN flybase.get_feature_relationship(fbgn.uniquename,'alleleof','FBal') AS fbal ON (fbgn.feature_id=fbal.object_id)
   -- Uncomment line below for testing.
   -- WHERE fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
 ;
 
 ALTER TABLE gene.allele ADD PRIMARY KEY (id);
+ALTER TABLE gene.allele ADD CONSTRAINT allele_fk1 FOREIGN KEY (gene_id) REFERENCES gene.gene (feature_id);
 CREATE INDEX allele_idx1 on gene.allele (fbal_id);
 CREATE INDEX allele_idx2 on gene.allele (symbol);
 CREATE INDEX allele_idx3 on gene.allele (is_construct);
 CREATE INDEX allele_idx4 on gene.allele (propagate_transgenic_uses);
-COMMENT ON TABLE gene.allele is E'@foreignKey (gene_id) references flybase.gene (feature_id)';
 
 /* Allele class table */
 DROP TABLE IF EXISTS gene.allele_class;
@@ -108,7 +108,7 @@ CREATE TABLE gene.insertion
             fbti.symbol AS symbol,
             NULL::bigint AS allele_id,
             fbgn.feature_id AS gene_id
-       FROM flybase.gene AS fbgn JOIN flybase.get_feature_relationship(fbgn.uniquename, 'attributed_as_expression_of','FBtr|FBpp') AS fbtr_fbpp
+       FROM gene.gene AS fbgn JOIN flybase.get_feature_relationship(fbgn.uniquename, 'attributed_as_expression_of','FBtr|FBpp') AS fbtr_fbpp
                                    ON fbgn.feature_id = fbtr_fbpp.object_id
                                  JOIN flybase.get_feature_relationship(fbtr_fbpp.uniquename,'associated_with','FBal','object') AS fbal
                                    ON fbtr_fbpp.subject_id = fbal.subject_id
@@ -135,7 +135,7 @@ CREATE TABLE gene.insertion
             flybase.current_symbol(fbti.uniquename) AS symbol,
             NULL::bigint AS allele_id,
             fbgn.feature_id AS gene_id
-       FROM flybase.gene AS fbgn LEFT JOIN LATERAL feature_overlaps(fbgn.feature_id) fbti ON TRUE
+       FROM gene.gene AS fbgn LEFT JOIN LATERAL feature_overlaps(fbgn.feature_id) fbti ON TRUE
        WHERE -- fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
          -- AND
          flybase.data_class(fbti.uniquename) = 'FBti'
@@ -150,13 +150,11 @@ CREATE TABLE gene.insertion
 ;
 ALTER TABLE gene.insertion ADD PRIMARY KEY (id);
 ALTER TABLE gene.insertion ADD CONSTRAINT insertion_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
--- Can't create a foreign key between a table and a materialized view.
---ALTER TABLE gene.insertion ADD CONSTRAINT insertion_fk2 FOREIGN KEY (gene_id) REFERENCES flybase.gene (feature_id);
+ALTER TABLE gene.insertion ADD CONSTRAINT insertion_fk2 FOREIGN KEY (gene_id) REFERENCES gene.gene (feature_id);
 CREATE INDEX insertion_idx1 on gene.insertion (allele_id);
 CREATE INDEX insertion_idx2 on gene.insertion (fbti_id);
 CREATE INDEX insertion_idx3 on gene.insertion (symbol);
 CREATE INDEX insertion_idx4 on gene.insertion (gene_id);
-COMMENT ON TABLE gene.insertion is E'@foreignKey (gene_id) references flybase.gene (feature_id)';
 
 
 /*

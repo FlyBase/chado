@@ -1,8 +1,8 @@
-create schema if not exists flybase;
+create schema if not exists gene;
 
-drop materialized view if exists flybase.gene;
+DROP TABLE IF EXISTS gene.gene;
 
-create materialized view if not exists flybase.gene
+CREATE TABLE gene.gene
   as select f.*
       from feature f join cvterm cvt on (f.type_id=cvt.cvterm_id)
       where f.uniquename ~ '^FBgn[0-9]+$'
