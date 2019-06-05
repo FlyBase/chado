@@ -10,13 +10,3 @@ CREATE TABLE gene.gene
         and f.is_obsolete = false
         and cvt.name = 'gene'
 ;
-/*
-This comment helps postgraphile establish a pseudo foreign key between flybase.gene
-and gene.insertion since we can't create an explicit one between a table
-and a materialized view.
-
-See
-https://www.graphile.org/postgraphile/smart-comments/#constraints
-*/
-COMMENT ON MATERIALIZED VIEW flybase.gene IS E'@foreignKey (feature_id) REFERENCES gene.allele (gene_id)';
-COMMENT ON MATERIALIZED VIEW flybase.gene IS E'@foreignKey (feature_id) REFERENCES gene.insertion (gene_id)';
