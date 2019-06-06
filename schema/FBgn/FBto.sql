@@ -1,12 +1,12 @@
-create schema if not exists gene;
+CREATE SCHEMA IF NOT EXISTS gene;
 
 -- Drop table
-drop table if exists gene.allele cascade;
+DROP TABLE IF EXISTS gene.allele cascade;
 
 -- Create table to hold all alleles.
 DROP SEQUENCE IF EXISTS allele_id_seq;
 CREATE SEQUENCE allele_id_seq;
-create table gene.allele
+CREATE TABLE gene.allele
   AS SELECT
        nextval('allele_id_seq') as id,
        -- Allele ID (FBal)
