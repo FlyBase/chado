@@ -62,18 +62,30 @@ DROP TABLE IF EXISTS gene.allele_class;
 DROP SEQUENCE IF EXISTS allele_class_id_seq;
 CREATE SEQUENCE allele_class_id_seq;
 CREATE TABLE gene.allele_class
-  AS SELECT DISTINCT on (fbal.fbal_id, class.name)
+  AS SELECT DISTINCT on (fbal.id, fbcv_id)
             nextval('allele_class_id_seq') as id,
             fbal.id as allele_id,
-            class.name,
-            db.name || ':' || dbx.accession as fbcv_id
-       FROM gene.allele fbal JOIN feature f ON (fbal.fbal_id = f.uniquename)
-                             JOIN feature_cvterm fcvt ON (f.feature_id = fcvt.feature_id)
-                             JOIN cvterm class on (fcvt.cvterm_id = class.cvterm_id)
-                             JOIN dbxref dbx on (class.dbxref_id = dbx.dbxref_id)
-                             JOIN db on (dbx.db_id = db.db_id)
-                             JOIN cvtermprop cvtp on (class.cvterm_id = cvtp.cvterm_id)
-       WHERE cvtp.value = 'allele_class'
+            split_class[1] as fbcv_id,
+            split_class[2] as name
+        FROM (
+          /*
+          Takes a sincle promoted allele class with stamps and it trims the stamps and whitespace,
+          then splits on the colon ':', and returns the id/name as an array of 2 elements.
+          */
+          SELECT uniquename, regexp_split_to_array(trim(both ' @' from allele_class), ':') AS split_class FROM
+            /* 
+            Selects all promoted_allele_class featureprops and splits those with multiple 
+            classes delimited by a comma into multiple result rows.
+            i.e.
+            This single string "@FBcv0123:name1@, @FBcv0124:name2@" is turned into two result rows.
+            */
+            (SELECT f.uniquename, regexp_split_to_table(fp.value, ',') AS allele_class
+               FROM featureprop fp JOIN cvterm fpt ON (fp.type_id = fpt.cvterm_id)
+                                   JOIN feature f ON (fp.feature_id = f.feature_id)
+               WHERE fpt.name = 'promoted_allele_class'
+            ) AS tmp1
+        ) AS tmp2
+        JOIN gene.allele fbal ON (tmp2.uniquename = fbal.fbal_id)
 ;
 ALTER TABLE gene.allele_class ADD PRIMARY KEY (id);
 ALTER TABLE gene.allele_class ADD CONSTRAINT allele_class_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
