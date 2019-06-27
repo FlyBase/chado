@@ -93,6 +93,80 @@ CREATE INDEX allele_class_idx1 ON gene.allele_class (allele_id);
 CREATE INDEX allele_class_idx2 ON gene.allele_class (name);
 CREATE INDEX allele_class_idx3 ON gene.allele_class (fbcv_id);
  
+/* Allele stock table */
+DROP TABLE IF EXISTS gene.allele_stock;
+DROP SEQUENCE IF EXISTS allele_stock_id_seq;
+CREATE SEQUENCE allele_stock_id_seq;
+CREATE TABLE gene.allele_stock
+  AS SELECT DISTINCT ON (fbal.id, stock.fbst)
+            nextval('allele_stock_id_seq') as id,
+            fbal.id as allele_id,
+            stock.fbst as fbst_id,
+            stock.center as center,
+            stock.stock_number as stock_number,
+            stock.genotype as genotype
+     FROM gene.allele as fbal JOIN flybase.get_stocks(fbal.fbal_id) AS stock ON (fbal.fbal_id = stock.fbid)
+;
+ALTER TABLE gene.allele_stock ADD PRIMARY KEY (id);
+ALTER TABLE gene.allele_stock ADD CONSTRAINT allele_stock_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
+CREATE INDEX allele_stock_idx1 ON gene.allele_stock (allele_id);
+CREATE INDEX allele_stock_idx2 ON gene.allele_stock (fbst_id);
+CREATE INDEX allele_stock_idx3 ON gene.allele_stock (center);
+CREATE INDEX allele_stock_idx4 ON gene.allele_stock (stock_number);
+CREATE INDEX allele_stock_idx5 ON gene.allele_stock (genotype);
+
+/*
+This function creates a Postgraphile computed column on the allele table that represents the count
+of stocks for an allele.
+https://www.graphile.org/postgraphile/computed-columns/
+*/
+CREATE OR REPLACE FUNCTION gene.allele_stocks_count(allele gene.allele)
+RETURNS bigint AS $$
+  SELECT COUNT(*) FROM flybase.get_stocks(allele.fbal_id);
+$$ LANGUAGE sql stable;
+
+/*
+This function creates a Postgraphile computed column on the allele table that represents 
+whether or not the allele has known lesions.
+https://www.graphile.org/postgraphile/computed-columns/
+*/
+CREATE OR REPLACE FUNCTION gene.allele_known_lesion(allele gene.allele)
+RETURNS boolean AS $$
+  SELECT fp.value IS NOT NULL
+    FROM feature fbal
+         LEFT JOIN
+        (
+          SELECT fp.feature_id, fp.value
+            FROM featureprop fp JOIN cvterm cvt ON (fp.type_id = cvt.cvterm_id)
+            WHERE cvt.name = 'known_lesion'
+        ) fp ON (fbal.feature_id = fp.feature_id)
+    WHERE fbal.uniquename = allele.fbal_id;
+$$ LANGUAGE sql stable;
+
+/* Allele mutagen table */
+DROP TABLE IF EXISTS gene.allele_mutagen;
+DROP SEQUENCE IF EXISTS allele_mutagen_id_seq;
+CREATE SEQUENCE allele_mutagen_id_seq;
+CREATE TABLE gene.allele_mutagen
+  AS SELECT DISTINCT ON (fbal.id, dbx.accession)
+            nextval('allele_mutagen_id_seq') AS id,
+            fbal.id as allele_id,
+            db.name || ':' || dbx.accession AS fbcv_id,
+            cvt.name AS name
+     FROM gene.allele as fbal JOIN feature f ON (fbal.fbal_id = f.uniquename)
+                              JOIN feature_cvterm fcvt ON (f.feature_id = fcvt.feature_id)
+                              JOIN cvterm cvt ON (fcvt.cvterm_id = cvt.cvterm_id)
+                              JOIN cvtermprop cvtp ON (cvt.cvterm_id = cvtp.cvterm_id)
+                              JOIN dbxref dbx ON (cvt.dbxref_id = dbx.dbxref_id)
+                              JOIN db ON (dbx.db_id = db.db_id)
+     WHERE cvtp.value = 'origin_of_mutation'
+;
+ALTER TABLE gene.allele_mutagen ADD PRIMARY KEY (id);
+ALTER TABLE gene.allele_mutagen ADD CONSTRAINT allele_mutagen_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
+CREATE INDEX allele_mutagen_idx1 ON gene.allele_mutagen (allele_id);
+CREATE INDEX allele_mutagen_idx2 ON gene.allele_mutagen (fbcv_id);
+CREATE INDEX allele_mutagen_idx3 ON gene.allele_mutagen (name);
+
  /*
  Table to hold the insertions that are directly associated with a particular allele.
  */
