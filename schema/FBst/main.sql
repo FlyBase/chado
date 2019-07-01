@@ -17,13 +17,13 @@ CREATE OR REPLACE FUNCTION flybase.get_stocks(ids text[])
 RETURNS SETOF flybase.stock AS $$
 DECLARE
   id text;
-  _r flybase.stock;
+  _stock flybase.stock;
   num_genotype text[];
   id_genotype text[];
 BEGIN
   FOREACH id IN ARRAY ids
   LOOP
-    FOR _r IN
+    FOR _stock IN
       SELECT f.uniquename as fbid,
              null as fbst,
              replace(fpt.name, 'derived_stock_', '') AS center,
@@ -34,12 +34,12 @@ BEGIN
         WHERE fpt.name ~ '^derived_stock_'
           AND f.uniquename = id
     LOOP
-      SELECT regexp_split_to_array(_r.genotype, '\t') INTO num_genotype;
-      _r.stock_number = num_genotype[1];
+      SELECT regexp_split_to_array(_stock.genotype, '\t') INTO num_genotype;
+      _stock.stock_number = num_genotype[1];
       SELECT regexp_split_to_array(trim(both ' @' from num_genotype[2]), ':') INTO id_genotype;
-      _r.fbst     = id_genotype[1];
-      _r.genotype = id_genotype[2];
-      RETURN NEXT _r;
+      _stock.fbst     = id_genotype[1];
+      _stock.genotype = id_genotype[2];
+      RETURN NEXT _stock;
     END LOOP;
   END LOOP;
 
