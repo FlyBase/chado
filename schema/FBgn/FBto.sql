@@ -4,26 +4,23 @@ CREATE SCHEMA IF NOT EXISTS gene;
 DROP TABLE IF EXISTS gene.allele cascade;
 
 -- Create table to hold all alleles.
-DROP SEQUENCE IF EXISTS allele_id_seq;
-CREATE SEQUENCE allele_id_seq;
 CREATE TABLE gene.allele
   AS SELECT
-       nextval('allele_id_seq') as id,
        -- Allele ID (FBal)
        fbal.uniquename AS fbal_id,
        -- Allele symbol
        fbal.symbol AS symbol,
        fbgn.feature_id AS gene_id,
        /*
-       A boolean field indicating whether or not the allele is a classical / insertion allele
-       or is associated with transgenic construct.
-
-       The test for a construct allele has two parts:
-
-       1. Does the allele have an associated construct.
-       OR
-       2. Does the allele have an associated 'origin_of_mutation' cvterm that starts with 'in vitro construct'.
-       */
+        * A boolean field indicating whether or not the allele is a classical / insertion allele
+        * or is associated with transgenic construct.
+        *
+        * The test for a construct allele has two parts:
+        *
+        * 1. Does the allele have an associated construct.
+        * OR
+        * 2. Does the allele have an associated 'origin_of_mutation' cvterm that starts with 'in vitro construct'.
+        */
        (exists (
           select 1
             from flybase.get_feature_relationship(fbal.uniquename, 'associated_with', 'FBtp|FBmc|FBms','object') AS fbtp
@@ -45,17 +42,80 @@ CREATE TABLE gene.allele
               where fp.value = 'n'
        )
        ) AS propagate_transgenic_uses
-  FROM gene.gene AS fbgn JOIN flybase.get_feature_relationship(fbgn.uniquename,'alleleof','FBal') AS fbal ON (fbgn.feature_id=fbal.object_id)
-  -- Uncomment line below for testing.
-  -- WHERE fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
+     FROM gene.gene AS fbgn
+                 JOIN
+                   flybase.get_feature_relationship(fbgn.uniquename,'alleleof','FBal') AS fbal
+                   ON (fbgn.feature_id=fbal.object_id)
+      
+     UNION
+      /*
+       * Transgenic constructs containing regulatory region of gene X.
+       * Method 1 from Gillian (WEB-1015).
+       */
+     SELECT
+        -- Allele ID (FBal)
+        fbal.uniquename AS fbal_id,
+        -- Allele symbol
+        fbal.symbol AS symbol,
+        fbgn.feature_id AS gene_id,
+        -- True by default.
+        true AS is_construct,
+        true AS propagate_transgenic_uses
+     FROM gene.gene AS fbgn
+                 JOIN
+                   flybase.get_feature_relationship(fbgn.uniquename,'has_reg_region','FBal') AS fbal
+                   ON (fbgn.feature_id=fbal.object_id)
+     UNION
+      /*
+       * Transgenic constructs containing regulatory region of gene X.
+       * Method 2 from Gillian (WEB-1015).
+       */
+      SELECT
+        -- Allele ID (FBal)
+        fbal.uniquename AS fbal_id,
+        -- Allele symbol
+        fbal.symbol AS symbol,
+        fbgn.feature_id AS gene_id,
+        true AS is_construct,
+        true AS propagate_transgenic_uses
+      FROM gene.gene AS fbgn
+                 JOIN
+                   flybase.get_feature_relationship(fbgn.uniquename,'attributed_as_expression_of','FBtr|FBpp') AS fbtr_fbpp
+                   ON (fbgn.feature_id=fbtr_fbpp.object_id)
+                 JOIN 
+                   flybase.get_feature_relationship(fbtr_fbpp.uniquename, 'associated_with','FBal', 'object') AS fbal
+                   ON (fbtr_fbpp.subject_id=fbal.subject_id)
+      UNION
+      /*
+       * Transgenic constructs containing regulatory region of gene X.
+       * Method 3 from Gillian (WEB-1015).
+       * NOT IMPLEMENTED IN CHADO YET
+       */
+      SELECT
+        -- Allele ID (FBal)
+        fbal.uniquename AS fbal_id,
+        -- Allele symbol
+        fbal.symbol AS symbol,
+        fbgn.feature_id AS gene_id,
+        true AS is_construct,
+        true AS propagate_transgenic_uses
+      FROM gene.gene AS fbgn
+                 JOIN
+                   flybase.get_feature_relationship(fbgn.uniquename,'associated_with','FBsf') AS fbsf
+                   ON (fbgn.feature_id=fbsf.object_id)
+                 JOIN 
+                   flybase.get_feature_relationship(fbsf.uniquename, 'has_reg_region','FBal') AS fbal
+                   ON (fbsf.object_id=fbal.object_id)             
 ;
 
-ALTER TABLE gene.allele ADD PRIMARY KEY (id);
+ALTER TABLE gene.allele ADD COLUMN id SERIAL PRIMARY KEY;
 ALTER TABLE gene.allele ADD CONSTRAINT allele_fk1 FOREIGN KEY (gene_id) REFERENCES gene.gene (feature_id);
-CREATE INDEX allele_idx1 on gene.allele (fbal_id);
-CREATE INDEX allele_idx2 on gene.allele (symbol);
-CREATE INDEX allele_idx3 on gene.allele (is_construct);
-CREATE INDEX allele_idx4 on gene.allele (propagate_transgenic_uses);
+--CREATE UNIQUE INDEX CONCURRENTLY allele_idx1 on gene.allele (fbal_id);
+--ALTER TABLE gene.allele ADD CONSTRAINT unique_fbal_id UNIQUE USING INDEX allele_idx1;
+CREATE INDEX allele_idx1 ON gene.allele (fbal_id);
+CREATE INDEX allele_idx2 ON gene.allele (symbol);
+CREATE INDEX allele_idx3 ON gene.allele (is_construct);
+CREATE INDEX allele_idx4 ON gene.allele (propagate_transgenic_uses);
 
 /* Allele class table */
 DROP TABLE IF EXISTS gene.allele_class;
@@ -69,16 +129,16 @@ CREATE TABLE gene.allele_class
             split_class[2] as name
         FROM (
           /*
-          Takes a sincle promoted allele class with stamps and it trims the stamps and whitespace,
-          then splits on the colon ':', and returns the id/name as an array of 2 elements.
-          */
+           * Takes a sincle promoted allele class with stamps and it trims the stamps and whitespace,
+           * then splits on the colon ':', and returns the id/name as an array of 2 elements.
+           */
           SELECT uniquename, regexp_split_to_array(trim(both ' @' from allele_class), ':') AS split_class FROM
             /* 
-            Selects all promoted_allele_class featureprops and splits those with multiple 
-            classes delimited by a comma into multiple result rows.
-            i.e.
-            This single string "@FBcv0123:name1@, @FBcv0124:name2@" is turned into two result rows.
-            */
+             * Selects all promoted_allele_class featureprops and splits those with multiple 
+             * classes delimited by a comma into multiple result rows.
+             * i.e.
+             * This single string "@FBcv0123:name1@, @FBcv0124:name2@" is turned into two result rows.
+             */
             (SELECT f.uniquename, regexp_split_to_table(fp.value, ',') AS allele_class
                FROM featureprop fp JOIN cvterm fpt ON (fp.type_id = fpt.cvterm_id)
                                    JOIN feature f ON (fp.feature_id = f.feature_id)
@@ -116,20 +176,20 @@ CREATE INDEX allele_stock_idx4 ON gene.allele_stock (stock_number);
 CREATE INDEX allele_stock_idx5 ON gene.allele_stock (genotype);
 
 /*
-This function creates a Postgraphile computed column on the allele table that represents the count
-of stocks for an allele.
-https://www.graphile.org/postgraphile/computed-columns/
-*/
+ * This function creates a Postgraphile computed column on the allele table that represents the count
+ * of stocks for an allele.
+ * https://www.graphile.org/postgraphile/computed-columns/
+ */
 CREATE OR REPLACE FUNCTION gene.allele_stocks_count(allele gene.allele)
 RETURNS bigint AS $$
   SELECT COUNT(*) FROM flybase.get_stocks(allele.fbal_id);
 $$ LANGUAGE sql stable;
 
 /*
-This function creates a Postgraphile computed column on the allele table that represents 
-whether or not the allele has known lesions.
-https://www.graphile.org/postgraphile/computed-columns/
-*/
+ * This function creates a Postgraphile computed column on the allele table that represents 
+ * whether or not the allele has known lesions.
+ * https://www.graphile.org/postgraphile/computed-columns/
+ */
 CREATE OR REPLACE FUNCTION gene.allele_known_lesion(allele gene.allele)
 RETURNS boolean AS $$
   SELECT fp.value IS NOT NULL
@@ -168,8 +228,8 @@ CREATE INDEX allele_mutagen_idx2 ON gene.allele_mutagen (fbcv_id);
 CREATE INDEX allele_mutagen_idx3 ON gene.allele_mutagen (name);
 
  /*
- Table to hold the insertions that are directly associated with a particular allele.
- */
+  * Table to hold the insertions that are directly associated with a particular allele.
+  */
 DROP TABLE IF EXISTS gene.insertion CASCADE;
 DROP SEQUENCE IF EXISTS insertion_id_seq;
 CREATE SEQUENCE insertion_id_seq;
@@ -185,9 +245,9 @@ CREATE TABLE gene.insertion
                                   ON (f.feature_id = fbti.subject_id) 
      UNION
      /*
-     The following select pulls in insertions that are known to be expressed in 
-     the pattern of gene X, but which are not know to cause an allele of gene X.
-     */
+      * The following select pulls in insertions that are known to be expressed in 
+      * the pattern of gene X, but which are not know to cause an allele of gene X.
+      */
      SELECT DISTINCT ON (fbgn.feature_id, fbti.uniquename)
             nextval('insertion_id_seq') as id,
             fbti.uniquename AS fbti_id,
@@ -212,9 +272,9 @@ CREATE TABLE gene.insertion
          )
      UNION
      /*
-     The following query pulls in insertions that overlap with the gene span.
-     It uses the built-in chado function feature_overlaps to perform that logic.
-     */
+      * The following query pulls in insertions that overlap with the gene span.
+      * It uses the built-in chado function feature_overlaps to perform that logic.
+      */
      SELECT DISTINCT ON (fbgn.feature_id, fbti.uniquename)
             nextval('insertion_id_seq') as id,
             fbti.uniquename AS fbti_id,
@@ -242,11 +302,21 @@ CREATE INDEX insertion_idx2 on gene.insertion (fbti_id);
 CREATE INDEX insertion_idx3 on gene.insertion (symbol);
 CREATE INDEX insertion_idx4 on gene.insertion (gene_id);
 
+/*
+ * This function creates a Postgraphile computed column on the insertion table that represents the count
+ * of stocks for an insertion.
+ * https://www.graphile.org/postgraphile/computed-columns/
+ */
+CREATE OR REPLACE FUNCTION gene.insertion_stocks_count(insertion gene.insertion)
+RETURNS bigint AS $$
+  SELECT COUNT(*) FROM flybase.get_stocks(insertion.fbti_id);
+$$ LANGUAGE sql stable;
+
 
 /*
-Constructs that are either produced by an insertion or 
-associated with an allele.
-*/
+ * Constructs that are either produced by an insertion or 
+ * associated with an allele.
+ */
 DROP TABLE IF EXISTS gene.construct CASCADE;
 DROP SEQUENCE IF EXISTS construct_id_seq;
 CREATE SEQUENCE construct_id_seq;
@@ -281,8 +351,8 @@ ALTER TABLE gene.construct ADD CONSTRAINT construct_fk1 FOREIGN KEY (insertion_i
 ALTER TABLE gene.construct ADD CONSTRAINT construct_fk2 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 
 /*
-Tools that are related to either the construct or allele.
-*/
+ * Tools that are related to either the construct or allele.
+ */
 DROP TABLE IF EXISTS gene.tool CASCADE;
 DROP SEQUENCE IF EXISTS tool_id_seq;
 CREATE SEQUENCE tool_id_seq;
