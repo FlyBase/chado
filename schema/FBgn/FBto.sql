@@ -41,7 +41,8 @@ CREATE TABLE gene.allele
             select 1 from flybase.get_featureprop(fbal.uniquename, 'propagate_transgenic_uses') fp
               where fp.value = 'n'
        )
-       ) AS propagate_transgenic_uses
+       ) AS propagate_transgenic_uses,
+       false AS contains_regulatory_region
      FROM gene.gene AS fbgn
                  JOIN
                    flybase.get_feature_relationship(fbgn.uniquename,'alleleof','FBal') AS fbal
@@ -60,7 +61,8 @@ CREATE TABLE gene.allele
         fbgn.feature_id AS gene_id,
         -- True by default.
         true AS is_construct,
-        true AS propagate_transgenic_uses
+        true AS propagate_transgenic_uses,
+        true AS contains_regulatory_region
      FROM gene.gene AS fbgn
                  JOIN
                    flybase.get_feature_relationship(fbgn.uniquename,'has_reg_region','FBal') AS fbal
@@ -77,7 +79,8 @@ CREATE TABLE gene.allele
         fbal.symbol AS symbol,
         fbgn.feature_id AS gene_id,
         true AS is_construct,
-        true AS propagate_transgenic_uses
+        true AS propagate_transgenic_uses,
+        true AS contains_regulatory_region
       FROM gene.gene AS fbgn
                  JOIN
                    flybase.get_feature_relationship(fbgn.uniquename,'attributed_as_expression_of','FBtr|FBpp') AS fbtr_fbpp
@@ -99,6 +102,7 @@ CREATE TABLE gene.allele
         fbgn.feature_id AS gene_id,
         true AS is_construct,
         true AS propagate_transgenic_uses
+        true AS contains_regulatory_region
       FROM gene.gene AS fbgn
                  JOIN
                    flybase.get_feature_relationship(fbgn.uniquename,'associated_with','FBsf') AS fbsf
@@ -116,14 +120,12 @@ CREATE INDEX allele_idx1 ON gene.allele (fbal_id);
 CREATE INDEX allele_idx2 ON gene.allele (symbol);
 CREATE INDEX allele_idx3 ON gene.allele (is_construct);
 CREATE INDEX allele_idx4 ON gene.allele (propagate_transgenic_uses);
+CREATE INDEX allele_idx5 ON gene.allele (contains_regulatory_region);
 
 /* Allele class table */
 DROP TABLE IF EXISTS gene.allele_class;
-DROP SEQUENCE IF EXISTS allele_class_id_seq;
-CREATE SEQUENCE allele_class_id_seq;
 CREATE TABLE gene.allele_class
   AS SELECT DISTINCT on (fbal.id, fbcv_id)
-            nextval('allele_class_id_seq') as id,
             fbal.id as allele_id,
             split_class[1] as fbcv_id,
             split_class[2] as name
@@ -147,7 +149,7 @@ CREATE TABLE gene.allele_class
         ) AS tmp2
         JOIN gene.allele fbal ON (tmp2.uniquename = fbal.fbal_id)
 ;
-ALTER TABLE gene.allele_class ADD PRIMARY KEY (id);
+ALTER TABLE gene.allele_class ADD COLUMN id SERIAL PRIMARY KEY;
 ALTER TABLE gene.allele_class ADD CONSTRAINT allele_class_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 CREATE INDEX allele_class_idx1 ON gene.allele_class (allele_id);
 CREATE INDEX allele_class_idx2 ON gene.allele_class (name);
@@ -155,11 +157,8 @@ CREATE INDEX allele_class_idx3 ON gene.allele_class (fbcv_id);
  
 /* Allele stock table */
 DROP TABLE IF EXISTS gene.allele_stock;
-DROP SEQUENCE IF EXISTS allele_stock_id_seq;
-CREATE SEQUENCE allele_stock_id_seq;
 CREATE TABLE gene.allele_stock
   AS SELECT DISTINCT ON (fbal.id, stock.fbst)
-            nextval('allele_stock_id_seq') as id,
             fbal.id as allele_id,
             stock.fbst as fbst_id,
             stock.center as center,
@@ -167,7 +166,7 @@ CREATE TABLE gene.allele_stock
             stock.genotype as genotype
      FROM gene.allele as fbal JOIN flybase.get_stocks(fbal.fbal_id) AS stock ON (fbal.fbal_id = stock.fbid)
 ;
-ALTER TABLE gene.allele_stock ADD PRIMARY KEY (id);
+ALTER TABLE gene.allele_stock ADD COLUMN id SERIAL PRIMARY KEY;
 ALTER TABLE gene.allele_stock ADD CONSTRAINT allele_stock_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 CREATE INDEX allele_stock_idx1 ON gene.allele_stock (allele_id);
 CREATE INDEX allele_stock_idx2 ON gene.allele_stock (fbst_id);
@@ -205,11 +204,8 @@ $$ LANGUAGE sql stable;
 
 /* Allele mutagen table */
 DROP TABLE IF EXISTS gene.allele_mutagen;
-DROP SEQUENCE IF EXISTS allele_mutagen_id_seq;
-CREATE SEQUENCE allele_mutagen_id_seq;
 CREATE TABLE gene.allele_mutagen
   AS SELECT DISTINCT ON (fbal.id, dbx.accession)
-            nextval('allele_mutagen_id_seq') AS id,
             fbal.id as allele_id,
             db.name || ':' || dbx.accession AS fbcv_id,
             cvt.name AS name
@@ -221,7 +217,7 @@ CREATE TABLE gene.allele_mutagen
                               JOIN db ON (dbx.db_id = db.db_id)
      WHERE cvtp.value = 'origin_of_mutation'
 ;
-ALTER TABLE gene.allele_mutagen ADD PRIMARY KEY (id);
+ALTER TABLE gene.allele_mutagen ADD COLUMN id SERIAL PRIMARY KEY;
 ALTER TABLE gene.allele_mutagen ADD CONSTRAINT allele_mutagen_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 CREATE INDEX allele_mutagen_idx1 ON gene.allele_mutagen (allele_id);
 CREATE INDEX allele_mutagen_idx2 ON gene.allele_mutagen (fbcv_id);
@@ -231,11 +227,8 @@ CREATE INDEX allele_mutagen_idx3 ON gene.allele_mutagen (name);
   * Table to hold the insertions that are directly associated with a particular allele.
   */
 DROP TABLE IF EXISTS gene.insertion CASCADE;
-DROP SEQUENCE IF EXISTS insertion_id_seq;
-CREATE SEQUENCE insertion_id_seq;
 CREATE TABLE gene.insertion
   AS SELECT DISTINCT ON (fbal.fbal_id, fbti.uniquename)
-            nextval('insertion_id_seq') AS id,
             fbti.uniquename AS fbti_id,
             fbti.symbol AS symbol,
             fbal.id AS allele_id,
@@ -249,7 +242,6 @@ CREATE TABLE gene.insertion
       * the pattern of gene X, but which are not know to cause an allele of gene X.
       */
      SELECT DISTINCT ON (fbgn.feature_id, fbti.uniquename)
-            nextval('insertion_id_seq') as id,
             fbti.uniquename AS fbti_id,
             fbti.symbol AS symbol,
             NULL::bigint AS allele_id,
@@ -276,7 +268,6 @@ CREATE TABLE gene.insertion
       * It uses the built-in chado function feature_overlaps to perform that logic.
       */
      SELECT DISTINCT ON (fbgn.feature_id, fbti.uniquename)
-            nextval('insertion_id_seq') as id,
             fbti.uniquename AS fbti_id,
             flybase.current_symbol(fbti.uniquename) AS symbol,
             NULL::bigint AS allele_id,
@@ -294,7 +285,7 @@ CREATE TABLE gene.insertion
              WHERE fbgn2.object_id = fbgn.feature_id
          )
 ;
-ALTER TABLE gene.insertion ADD PRIMARY KEY (id);
+ALTER TABLE gene.insertion ADD COLUMN id SERIAL PRIMARY KEY;
 ALTER TABLE gene.insertion ADD CONSTRAINT insertion_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 ALTER TABLE gene.insertion ADD CONSTRAINT insertion_fk2 FOREIGN KEY (gene_id) REFERENCES gene.gene (feature_id);
 CREATE INDEX insertion_idx1 on gene.insertion (allele_id);
@@ -318,11 +309,8 @@ $$ LANGUAGE sql stable;
  * associated with an allele.
  */
 DROP TABLE IF EXISTS gene.construct CASCADE;
-DROP SEQUENCE IF EXISTS construct_id_seq;
-CREATE SEQUENCE construct_id_seq;
 CREATE TABLE gene.construct
   AS SELECT 
-            nextval('construct_id_seq') as id,
             fbtp.uniquename AS fbtp_id,
             fbtp.symbol AS symbol,
             fbti.id as insertion_id,
@@ -332,7 +320,6 @@ CREATE TABLE gene.construct
                 on (f.feature_id = fbtp.subject_id)
      UNION
      SELECT 
-            nextval('construct_id_seq') as id,
             fbtp.uniquename AS fbtp_id,
             fbtp.symbol AS symbol,
             NULL::bigint as insertion_id,
@@ -342,7 +329,7 @@ CREATE TABLE gene.construct
                 on (f.feature_id = fbtp.subject_id)
 
 ;
-ALTER TABLE gene.construct ADD PRIMARY KEY (id);
+ALTER TABLE gene.construct ADD COLUMN id SERIAL PRIMARY KEY;
 CREATE INDEX construct_idx1 on gene.construct (fbtp_id);
 CREATE INDEX construct_idx2 on gene.construct (symbol);
 CREATE INDEX construct_idx3 on gene.construct (insertion_id);
@@ -354,11 +341,8 @@ ALTER TABLE gene.construct ADD CONSTRAINT construct_fk2 FOREIGN KEY (allele_id) 
  * Tools that are related to either the construct or allele.
  */
 DROP TABLE IF EXISTS gene.tool CASCADE;
-DROP SEQUENCE IF EXISTS tool_id_seq;
-CREATE SEQUENCE tool_id_seq;
 CREATE TABLE gene.tool
-  AS SELECT nextval('tool_id_seq') as id,
-            fbto.uniquename AS fbto_id,
+  AS SELECT fbto.uniquename AS fbto_id,
             fbto.symbol AS symbol,
             fbto.type as rel_type,
             fbtp.id as construct_id,
@@ -367,8 +351,7 @@ CREATE TABLE gene.tool
                                    JOIN flybase.get_feature_relationship(fbtp.fbtp_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto', 'object') AS fbto
                                      ON (f.feature_id = fbto.subject_id)
        UNION
-       SELECT nextval('tool_id_seq') as id,
-            fbto.uniquename AS fbto_id,
+       SELECT fbto.uniquename AS fbto_id,
             fbto.symbol AS symbol,
             fbto.type as rel_type,
             NULL::bigint as construct_id,
@@ -377,7 +360,7 @@ CREATE TABLE gene.tool
                                   JOIN flybase.get_feature_relationship(fbal.fbal_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto', 'object') AS fbto
                                     ON (f.feature_id = fbto.subject_id)
 ;
-ALTER TABLE gene.tool ADD PRIMARY KEY (id);
+ALTER TABLE gene.tool ADD COLUMN id SERIAL PRIMARY KEY;
 CREATE INDEX tool_idx1 on gene.tool (fbto_id);
 CREATE INDEX tool_idx2 on gene.tool (symbol);
 CREATE INDEX tool_idx3 on gene.tool (rel_type);
@@ -388,12 +371,9 @@ ALTER TABLE gene.tool ADD CONSTRAINT tool_fk2 FOREIGN KEY (allele_id) REFERENCES
 
 /* Tool Use */
 DROP TABLE IF EXISTS gene.tool_use CASCADE;
-DROP SEQUENCE IF EXISTS tool_use_id_seq;
-CREATE SEQUENCE tool_use_id_seq;
 CREATE TABLE gene.tool_use
   -- Get all tool_uses associated with the alleles.
   AS SELECT 
-            nextval('tool_use_id_seq') as id,
             cvt.name as name,
             db.name || ':' || dbx.accession as fbcv_id,
             fbal.id as allele_id,
@@ -409,7 +389,6 @@ CREATE TABLE gene.tool_use
        WHERE fcvtp_type.name = 'tool_uses'
      UNION
      SELECT 
-            nextval('tool_use_id_seq') as id,
             cvt.name as name,
             db.name || ':' || dbx.accession as fbcv_id,
             NULL::bigint as allele_id,
@@ -425,7 +404,6 @@ CREATE TABLE gene.tool_use
        WHERE fcvtp_type.name = 'tool_uses'
      UNION
      SELECT 
-            nextval('tool_use_id_seq') as id,
             cvt.name as name,
             db.name || ':' || dbx.accession as fbcv_id,
             NULL::bigint as allele_id,
@@ -441,7 +419,7 @@ CREATE TABLE gene.tool_use
        WHERE fcvtp_type.name = 'tool_uses'
 ;
 
-ALTER TABLE gene.tool_use ADD PRIMARY KEY (id);
+ALTER TABLE gene.tool_use ADD COLUMN id SERIAL PRIMARY KEY;
 CREATE INDEX tool_use_idx1 on gene.tool_use (fbcv_id);
 CREATE INDEX tool_use_idx2 on gene.tool_use (name);
 CREATE INDEX tool_use_idx3 on gene.tool_use (allele_id);
