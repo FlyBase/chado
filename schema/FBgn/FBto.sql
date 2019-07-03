@@ -113,6 +113,15 @@ CREATE TABLE gene.allele
 ;
 
 ALTER TABLE gene.allele ADD COLUMN id SERIAL PRIMARY KEY;
+
+-- Add and populate a stocks count column.
+ALTER TABLE gene.allele ADD COLUMN stocks_count bigint DEFAULT 0;
+UPDATE gene.allele SET stocks_count = (select count(*) from flybase.get_stocks(fbal_id));
+
+-- Add and populate a known lesion column.
+ALTER TABLE gene.allele ADD COLUMN known_lesion boolean DEFAULT false;
+UPDATE gene.allele SET known_lesion = (SELECT COUNT(*) != 0 FROM flybase.get_featureprop(fbal_id,'known_lesion'));
+
 ALTER TABLE gene.allele ADD CONSTRAINT allele_fk1 FOREIGN KEY (gene_id) REFERENCES gene.gene (feature_id);
 --CREATE UNIQUE INDEX CONCURRENTLY allele_idx1 on gene.allele (fbal_id);
 --ALTER TABLE gene.allele ADD CONSTRAINT unique_fbal_id UNIQUE USING INDEX allele_idx1;
@@ -121,6 +130,8 @@ CREATE INDEX allele_idx2 ON gene.allele (symbol);
 CREATE INDEX allele_idx3 ON gene.allele (is_construct);
 CREATE INDEX allele_idx4 ON gene.allele (propagate_transgenic_uses);
 CREATE INDEX allele_idx5 ON gene.allele (contains_regulatory_region);
+CREATE INDEX allele_idx6 ON gene.allele (stocks_count);
+CREATE INDEX allele_idx7 ON gene.allele (known_lesion);
 
 /* Allele class table */
 DROP TABLE IF EXISTS gene.allele_class;
@@ -173,34 +184,6 @@ CREATE INDEX allele_stock_idx2 ON gene.allele_stock (fbst_id);
 CREATE INDEX allele_stock_idx3 ON gene.allele_stock (center);
 CREATE INDEX allele_stock_idx4 ON gene.allele_stock (stock_number);
 CREATE INDEX allele_stock_idx5 ON gene.allele_stock (genotype);
-
-/*
- * This function creates a Postgraphile computed column on the allele table that represents the count
- * of stocks for an allele.
- * https://www.graphile.org/postgraphile/computed-columns/
- */
-CREATE OR REPLACE FUNCTION gene.allele_stocks_count(allele gene.allele)
-RETURNS bigint AS $$
-  SELECT COUNT(*) FROM flybase.get_stocks(allele.fbal_id);
-$$ LANGUAGE sql stable;
-
-/*
- * This function creates a Postgraphile computed column on the allele table that represents 
- * whether or not the allele has known lesions.
- * https://www.graphile.org/postgraphile/computed-columns/
- */
-CREATE OR REPLACE FUNCTION gene.allele_known_lesion(allele gene.allele)
-RETURNS boolean AS $$
-  SELECT fp.value IS NOT NULL
-    FROM feature fbal
-         LEFT JOIN
-        (
-          SELECT fp.feature_id, fp.value
-            FROM featureprop fp JOIN cvterm cvt ON (fp.type_id = cvt.cvterm_id)
-            WHERE cvt.name = 'known_lesion'
-        ) fp ON (fbal.feature_id = fp.feature_id)
-    WHERE fbal.uniquename = allele.fbal_id;
-$$ LANGUAGE sql stable;
 
 /* Allele mutagen table */
 DROP TABLE IF EXISTS gene.allele_mutagen;
@@ -286,23 +269,18 @@ CREATE TABLE gene.insertion
          )
 ;
 ALTER TABLE gene.insertion ADD COLUMN id SERIAL PRIMARY KEY;
+
+-- Add and populate a stocks count column.
+ALTER TABLE gene.insertion ADD COLUMN stocks_count bigint DEFAULT 0;
+UPDATE gene.insertion SET stocks_count = (select count(*) from flybase.get_stocks(fbti_id));
+
 ALTER TABLE gene.insertion ADD CONSTRAINT insertion_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 ALTER TABLE gene.insertion ADD CONSTRAINT insertion_fk2 FOREIGN KEY (gene_id) REFERENCES gene.gene (feature_id);
 CREATE INDEX insertion_idx1 on gene.insertion (allele_id);
 CREATE INDEX insertion_idx2 on gene.insertion (fbti_id);
 CREATE INDEX insertion_idx3 on gene.insertion (symbol);
 CREATE INDEX insertion_idx4 on gene.insertion (gene_id);
-
-/*
- * This function creates a Postgraphile computed column on the insertion table that represents the count
- * of stocks for an insertion.
- * https://www.graphile.org/postgraphile/computed-columns/
- */
-CREATE OR REPLACE FUNCTION gene.insertion_stocks_count(insertion gene.insertion)
-RETURNS bigint AS $$
-  SELECT COUNT(*) FROM flybase.get_stocks(insertion.fbti_id);
-$$ LANGUAGE sql stable;
-
+CREATE INDEX insertion_idx5 on gene.insertion (stocks_count);
 
 /*
  * Constructs that are either produced by an insertion or 
