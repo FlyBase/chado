@@ -106,7 +106,7 @@ CREATE TABLE gene.allele
         fbal.symbol AS symbol,
         fbgn.feature_id AS gene_id,
         true AS is_construct,
-        true AS propagate_transgenic_uses
+        true AS propagate_transgenic_uses,
         true AS contains_regulatory_region
       FROM gene.gene AS fbgn
                  JOIN
