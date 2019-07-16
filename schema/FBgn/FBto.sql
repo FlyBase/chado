@@ -28,12 +28,11 @@ CREATE TABLE gene.allele
         or
         exists (
           select 1
-            from feature_cvterm fcvt join feature_cvtermprop fcvtp on (fcvt.feature_cvterm_id=fcvtp.feature_cvterm_id)
-                                     join cvterm cvt on (fcvt.cvterm_id=cvt.cvterm_id)
-                                     join cvterm cvtp on (fcvtp.type_id=cvtp.cvterm_id)
-            where cvtp.name = 'origin_of_mutation'
+            from feature_cvterm fcvt join cvterm cvt on (fcvt.cvterm_id=cvt.cvterm_id)
+                                     join cvtermprop cvtp on (cvt.cvterm_id=cvtp.cvterm_id)
+            where cvtp.value = 'origin_of_mutation'
               -- FBcv term starting with 'in vitro construct'
-              and position('in vitro construct' in lower(cvt.name)) = 0
+              and position('in vitro construct' in lower(cvt.name)) = 1
               and fcvt.feature_id = fbal.subject_id
         )
        ) AS is_construct,
