@@ -87,6 +87,12 @@ CREATE TABLE gene.allele
                  JOIN 
                    flybase.get_feature_relationship(fbtr_fbpp.uniquename, 'associated_with','FBal', 'object') AS fbal
                    ON (fbtr_fbpp.subject_id=fbal.subject_id)
+                 JOIN
+                   flybase.get_feature_relationship(fbal.uniquename, 'associated_with', 'FBtp', 'object') AS fbtp
+                   ON (fbal.object_id=fbtp.subject_id)
+                 JOIN
+                   flybase.get_feature_relationship(fbal.uniquename, 'encodes_tool', 'FBto', 'object') AS fbto
+                   ON (fbal.object_id=fbto.subject_id)
       UNION
       /*
        * Transgenic constructs containing regulatory region of gene X.
