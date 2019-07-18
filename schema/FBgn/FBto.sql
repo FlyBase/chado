@@ -216,7 +216,7 @@ CREATE INDEX allele_mutagen_idx3 ON gene.allele_mutagen (name);
   */
 DROP TABLE IF EXISTS gene.insertion CASCADE;
 CREATE TABLE gene.insertion
-  AS SELECT DISTINCT ON (fbal.fbal_id, fbti.uniquename)
+  AS SELECT DISTINCT ON (fbal.id, fbti.uniquename)
             fbti.uniquename AS fbti_id,
             fbti.symbol AS symbol,
             fbal.id AS allele_id,
@@ -240,8 +240,7 @@ CREATE TABLE gene.insertion
                                    ON fbtr_fbpp.subject_id = fbal.subject_id
                                  JOIN flybase.get_feature_relationship(fbal.uniquename,'associated_with','FBti','object') as fbti
                                    ON fbal.object_id = fbti.subject_id
-       WHERE -- fbgn.uniquename IN ('FBgn0033932','FBgn0022800','FBgn0010433','FBgn0004635','FBgn0039290')
-         -- AND
+       WHERE 
          /** Make sure it doesn't have an associated allele **/
          NOT EXISTS (
            SELECT 1
