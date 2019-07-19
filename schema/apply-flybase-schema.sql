@@ -15,3 +15,9 @@
 
 -- Stocks
 \ir FBst/main.sql
+
+-- Cell lines
+\ir FBtc/main.sql
+
+-- Pubs
+\ir FBrf/main.sql

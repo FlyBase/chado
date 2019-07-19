@@ -41,7 +41,7 @@ CREATE TABLE gene.allele
               where fp.value = 'n'
        )
        ) AS propagate_transgenic_uses,
-       false AS contains_regulatory_region
+       false AS gene_is_regulatory_region
      FROM gene.gene AS fbgn
                  JOIN
                    flybase.get_feature_relationship(fbgn.uniquename,'alleleof','FBal') AS fbal
@@ -61,7 +61,7 @@ CREATE TABLE gene.allele
         -- True by default.
         true AS is_construct,
         true AS propagate_transgenic_uses,
-        true AS contains_regulatory_region
+        true AS gene_is_regulatory_region
      FROM gene.gene AS fbgn
                  JOIN
                    flybase.get_feature_relationship(fbgn.uniquename,'has_reg_region','FBal') AS fbal
@@ -79,7 +79,7 @@ CREATE TABLE gene.allele
         fbgn.feature_id AS gene_id,
         true AS is_construct,
         true AS propagate_transgenic_uses,
-        true AS contains_regulatory_region
+        true AS gene_is_regulatory_region
       FROM gene.gene AS fbgn
                  JOIN
                    flybase.get_feature_relationship(fbgn.uniquename,'attributed_as_expression_of','FBtr|FBpp') AS fbtr_fbpp
@@ -107,7 +107,7 @@ CREATE TABLE gene.allele
         fbgn.feature_id AS gene_id,
         true AS is_construct,
         true AS propagate_transgenic_uses,
-        true AS contains_regulatory_region
+        true AS gene_is_regulatory_region
       FROM gene.gene AS fbgn
                  JOIN
                    flybase.get_feature_relationship(fbgn.uniquename,'associated_with','FBsf') AS fbsf
@@ -134,7 +134,7 @@ CREATE INDEX allele_idx1 ON gene.allele (fbal_id);
 CREATE INDEX allele_idx2 ON gene.allele (symbol);
 CREATE INDEX allele_idx3 ON gene.allele (is_construct);
 CREATE INDEX allele_idx4 ON gene.allele (propagate_transgenic_uses);
-CREATE INDEX allele_idx5 ON gene.allele (contains_regulatory_region);
+CREATE INDEX allele_idx5 ON gene.allele (gene_is_regulatory_region);
 CREATE INDEX allele_idx6 ON gene.allele (stocks_count);
 CREATE INDEX allele_idx7 ON gene.allele (known_lesion);
 
