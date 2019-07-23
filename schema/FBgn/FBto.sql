@@ -123,6 +123,10 @@ ALTER TABLE gene.allele ADD COLUMN id SERIAL PRIMARY KEY;
 ALTER TABLE gene.allele ADD COLUMN stocks_count bigint DEFAULT 0;
 UPDATE gene.allele SET stocks_count = (select count(*) from flybase.get_stocks(fbal_id));
 
+-- Add and populate a pub count column.
+ALTER TABLE gene.allele ADD COLUMN pub_count bigint DEFAULT 0;
+UPDATE gene.allele SET pub_count = (select flybase.pub_count(fbal_id));
+
 -- Add and populate a known lesion column.
 ALTER TABLE gene.allele ADD COLUMN known_lesion boolean DEFAULT false;
 UPDATE gene.allele SET known_lesion = (SELECT COUNT(*) != 0 FROM flybase.get_featureprop(fbal_id,'known_lesion'));
@@ -137,6 +141,7 @@ CREATE INDEX allele_idx4 ON gene.allele (propagate_transgenic_uses);
 CREATE INDEX allele_idx5 ON gene.allele (gene_is_regulatory_region);
 CREATE INDEX allele_idx6 ON gene.allele (stocks_count);
 CREATE INDEX allele_idx7 ON gene.allele (known_lesion);
+CREATE INDEX allele_idx8 ON gene.allele (pub_count);
 
 /* Allele class table */
 DROP TABLE IF EXISTS gene.allele_class;
@@ -278,6 +283,10 @@ ALTER TABLE gene.insertion ADD COLUMN id SERIAL PRIMARY KEY;
 ALTER TABLE gene.insertion ADD COLUMN stocks_count bigint DEFAULT 0;
 UPDATE gene.insertion SET stocks_count = (select count(*) from flybase.get_stocks(fbti_id));
 
+-- Add and populate a pub count column.
+ALTER TABLE gene.insertion ADD COLUMN pub_count bigint DEFAULT 0;
+UPDATE gene.insertion SET pub_count = (select flybase.pub_count(fbti_id));
+
 ALTER TABLE gene.insertion ADD CONSTRAINT insertion_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 ALTER TABLE gene.insertion ADD CONSTRAINT insertion_fk2 FOREIGN KEY (gene_id) REFERENCES gene.gene (feature_id);
 CREATE INDEX insertion_idx1 on gene.insertion (allele_id);
@@ -285,6 +294,7 @@ CREATE INDEX insertion_idx2 on gene.insertion (fbti_id);
 CREATE INDEX insertion_idx3 on gene.insertion (symbol);
 CREATE INDEX insertion_idx4 on gene.insertion (gene_id);
 CREATE INDEX insertion_idx5 on gene.insertion (stocks_count);
+CREATE INDEX insertion_idx6 on gene.insertion (pub_count);
 
 /*
  * Constructs that are either produced by an insertion or 

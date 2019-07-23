@@ -7,7 +7,7 @@ for that object.  It only counts direct publication associations between
 the main table of the FlyBase object and a pub (e.g. feature -> feature_pub -> pub).
 
 */
-CREATE OR REPLACE FUNCTION flybase.get_pub_count(id text)
+CREATE OR REPLACE FUNCTION flybase.pub_count(id text)
 RETURNS bigint AS $$
 DECLARE
   count bigint = 0;
@@ -53,9 +53,10 @@ BEGIN
       where obj.uniquename = %4$L
         and obj.is_obsolete = false
         and p.is_obsolete = false
-    ;', object_table, linker_table, linker_field, id)
+        and upper(flybase.data_class(p.uniquename)) = %5$L
+    ;', object_table, linker_table, linker_field, id, 'FBRF')
     INTO count;
     RETURN count;
 END
 $$ LANGUAGE plpgsql stable;
-COMMENT ON FUNCTION flybase.get_pub_count(text) IS 'Given a FlyBase ID, returns a count of FlyBase pub records directly associated with it.';
+COMMENT ON FUNCTION flybase.pub_count(text) IS 'Given a FlyBase ID, returns a count of FlyBase pub records directly associated with it.';
