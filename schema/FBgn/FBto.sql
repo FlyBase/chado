@@ -334,26 +334,26 @@ ALTER TABLE gene.construct ADD CONSTRAINT construct_fk2 FOREIGN KEY (allele_id) 
  */
 DROP TABLE IF EXISTS gene.tool CASCADE;
 CREATE TABLE gene.tool
-  AS SELECT fbto.uniquename AS fbto_id,
-            fbto.symbol AS symbol,
-            fbto.type as rel_type,
+  AS SELECT fbto_fbgn.uniquename AS fbid,
+            fbto_fbgn.symbol AS symbol,
+            fbto_fbgn.type as rel_type,
             fbtp.id as construct_id,
             NULL::bigint as allele_id
        FROM gene.construct AS fbtp JOIN feature f ON (fbtp.fbtp_id = f.uniquename)
-                                   JOIN flybase.get_feature_relationship(fbtp.fbtp_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto', 'object') AS fbto
+                                   JOIN flybase.get_feature_relationship(fbtp.fbtp_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto|FBgn', 'object') AS fbto_fbgn
                                      ON (f.feature_id = fbto.subject_id)
        UNION
-       SELECT fbto.uniquename AS fbto_id,
-            fbto.symbol AS symbol,
-            fbto.type as rel_type,
+       SELECT fbto_fbgn.uniquename AS fbid,
+            fbto_fbgn.symbol AS symbol,
+            fbto_fbgn.type as rel_type,
             NULL::bigint as construct_id,
             fbal.id as allele_id
          FROM gene.allele AS fbal JOIN feature f ON (fbal.fbal_id = f.uniquename)
-                                  JOIN flybase.get_feature_relationship(fbal.fbal_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto', 'object') AS fbto
-                                    ON (f.feature_id = fbto.subject_id)
+                                  JOIN flybase.get_feature_relationship(fbal.fbal_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto|FBgn', 'object') AS fbto_fbgn
+                                    ON (f.feature_id = fbto_fbgn.subject_id)
 ;
 ALTER TABLE gene.tool ADD COLUMN id SERIAL PRIMARY KEY;
-CREATE INDEX tool_idx1 on gene.tool (fbto_id);
+CREATE INDEX tool_idx1 on gene.tool (fbid);
 CREATE INDEX tool_idx2 on gene.tool (symbol);
 CREATE INDEX tool_idx3 on gene.tool (rel_type);
 CREATE INDEX tool_idx4 on gene.tool (construct_id);
@@ -400,8 +400,8 @@ CREATE TABLE gene.tool_use
             db.name || ':' || dbx.accession as fbcv_id,
             NULL::bigint as allele_id,
             NULL::bigint as construct_id,
-            fbto.id as tool_id
-       FROM gene.tool fbto JOIN feature f ON (fbto.fbto_id = f.uniquename)
+            fbto_fbgn.id as tool_id
+       FROM gene.tool fbto_fbgn JOIN feature f ON (fbto_fbgn.fbid = f.uniquename)
                              JOIN feature_cvterm fcvt ON (f.feature_id = fcvt.feature_id)
                              JOIN feature_cvtermprop fcvtp on (fcvt.feature_cvterm_id = fcvtp.feature_cvterm_id)
                              JOIN cvterm fcvtp_type on (fcvtp.type_id = fcvtp_type.cvterm_id)
