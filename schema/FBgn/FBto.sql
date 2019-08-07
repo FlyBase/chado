@@ -341,7 +341,7 @@ CREATE TABLE gene.tool
             NULL::bigint as allele_id
        FROM gene.construct AS fbtp JOIN feature f ON (fbtp.fbtp_id = f.uniquename)
                                    JOIN flybase.get_feature_relationship(fbtp.fbtp_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto|FBgn', 'object') AS fbto_fbgn
-                                     ON (f.feature_id = fbto.subject_id)
+                                     ON (f.feature_id = fbto_fbgn.subject_id)
        UNION
        SELECT fbto_fbgn.uniquename AS fbid,
             fbto_fbgn.symbol AS symbol,
