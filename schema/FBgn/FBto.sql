@@ -119,6 +119,14 @@ CREATE TABLE gene.allele
 
 ALTER TABLE gene.allele ADD COLUMN id SERIAL PRIMARY KEY;
 
+CREATE OR REPLACE FUNCTION gene.alleles_by_fbal(ids text[])
+    RETURNS SETOF gene.allele AS $$
+    SELECT allele.*
+        FROM gene.allele AS allele
+        WHERE allele.fbal_id = ANY (ids)
+    ;
+$$ LANGUAGE SQL STABLE;
+
 -- Add and populate a stocks count column.
 ALTER TABLE gene.allele ADD COLUMN stocks_count bigint DEFAULT 0;
 UPDATE gene.allele SET stocks_count = (select count(*) from flybase.get_stocks(fbal_id));

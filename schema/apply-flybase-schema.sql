@@ -13,6 +13,9 @@
 -- Property functions (featureprop, etc.).
 \ir properties/featureprop.sql
 
+-- Gene
+\ir FBgn/main.sql
+
 -- Stocks
 \ir FBst/main.sql
 
