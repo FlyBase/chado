@@ -11,6 +11,8 @@ CREATE TABLE gene.allele
        -- Allele symbol
        fbal.symbol AS symbol,
        fbgn.feature_id AS gene_id,
+       -- Field indicating if this allele came from an 'alleleof' relationship.
+       true AS is_alleleof,
        /*
         * A boolean field indicating whether or not the allele is a classical / insertion allele
         * or is associated with transgenic construct.
@@ -58,6 +60,8 @@ CREATE TABLE gene.allele
         -- Allele symbol
         fbal.symbol AS symbol,
         fbgn.feature_id AS gene_id,
+        -- Field indicating if this allele came from an 'alleleof' relationship.
+        false AS is_alleleof,
         -- True by default.
         true AS is_construct,
         true AS propagate_transgenic_uses,
@@ -77,6 +81,8 @@ CREATE TABLE gene.allele
         -- Allele symbol
         fbal.symbol AS symbol,
         fbgn.feature_id AS gene_id,
+        -- Field indicating if this allele came from an 'alleleof' relationship.
+        false AS is_alleleof,
         true AS is_construct,
         true AS propagate_transgenic_uses,
         true AS gene_is_regulatory_region
@@ -105,6 +111,8 @@ CREATE TABLE gene.allele
         -- Allele symbol
         fbal.symbol AS symbol,
         fbgn.feature_id AS gene_id,
+        -- Field indicating if this allele came from an 'alleleof' relationship.
+        false AS is_alleleof,
         true AS is_construct,
         true AS propagate_transgenic_uses,
         true AS gene_is_regulatory_region
@@ -124,7 +132,7 @@ CREATE OR REPLACE FUNCTION gene.alleles_by_fbal(ids text[])
     SELECT allele.*
         FROM gene.allele AS allele
         WHERE allele.fbal_id = ANY (ids)
-          AND allele.gene_id = ( SELECT object_id FROM flybase.get_feature_relationship(allele.fbal_id, 'alleleof','FBgn','object'))
+          AND allele.is_alleleof = true
     ;
 $$ LANGUAGE SQL STABLE;
 
@@ -151,6 +159,8 @@ CREATE INDEX allele_idx5 ON gene.allele (gene_is_regulatory_region);
 CREATE INDEX allele_idx6 ON gene.allele (stocks_count);
 CREATE INDEX allele_idx7 ON gene.allele (known_lesion);
 CREATE INDEX allele_idx8 ON gene.allele (pub_count);
+CREATE INDEX allele_idx9 ON gene.allele (gene_id);
+CREATE INDEX allele_idx10 ON gene.allele (is_alleleof);
 
 /* Allele class table */
 DROP TABLE IF EXISTS gene.allele_class;
