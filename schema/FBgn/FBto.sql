@@ -124,6 +124,7 @@ CREATE OR REPLACE FUNCTION gene.alleles_by_fbal(ids text[])
     SELECT allele.*
         FROM gene.allele AS allele
         WHERE allele.fbal_id = ANY (ids)
+          AND allele.gene_id = ( SELECT object_id FROM flybase.get_feature_relationship(allele.fbal_id, 'alleleof','FBgn','object'))
     ;
 $$ LANGUAGE SQL STABLE;
 
