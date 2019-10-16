@@ -148,6 +148,10 @@ UPDATE gene.allele SET pub_count = (select flybase.pub_count(fbal_id));
 ALTER TABLE gene.allele ADD COLUMN known_lesion boolean DEFAULT false;
 UPDATE gene.allele SET known_lesion = (SELECT COUNT(*) != 0 FROM flybase.get_featureprop(fbal_id,'known_lesion'));
 
+-- Add and populate a has_image column.
+ALTER TABLE gene.allele ADD COLUMN has_image boolean DEFAULT false;
+UPDATE gene.allele SET has_image = (SELECT COUNT(*) != 0 FROM flybase.get_featureprop(fbal_id,'linked_image'));
+
 ALTER TABLE gene.allele ADD CONSTRAINT allele_fk1 FOREIGN KEY (gene_id) REFERENCES gene.gene (feature_id);
 --CREATE UNIQUE INDEX CONCURRENTLY allele_idx1 on gene.allele (fbal_id);
 --ALTER TABLE gene.allele ADD CONSTRAINT unique_fbal_id UNIQUE USING INDEX allele_idx1;
@@ -161,6 +165,7 @@ CREATE INDEX allele_idx7 ON gene.allele (known_lesion);
 CREATE INDEX allele_idx8 ON gene.allele (pub_count);
 CREATE INDEX allele_idx9 ON gene.allele (gene_id);
 CREATE INDEX allele_idx10 ON gene.allele (is_alleleof);
+CREATE INDEX allele_idx11 ON gene.allele (has_image);
 
 /* Allele class table */
 DROP TABLE IF EXISTS gene.allele_class;
