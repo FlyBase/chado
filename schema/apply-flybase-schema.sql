@@ -11,7 +11,7 @@
 \ir relationships/get_relationship.sql
 
 -- Property functions (featureprop, etc.).
-\ir properties/featureprop.sql
+\ir properties/get_prop.sql
 
 -- Gene
 \ir FBgn/main.sql
