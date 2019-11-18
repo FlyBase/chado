@@ -23,6 +23,7 @@ begin
         from stock st join stock_genotype stg on (st.stock_id=stg.stock_id)
                       join genotype g on (stg.genotype_id=g.genotype_id)
         where st.uniquename = %1$L
+          and st.is_obsolete = false
       limit 1;', id)
     into synonym;
 
@@ -64,6 +65,7 @@ begin
                         join synonym s on linker.synonym_id = s.synonym_id
                         join cvterm cvt on s.type_id=cvt.cvterm_id
         where obj.uniquename = %4$L
+          and obj.is_obsolete = false
           and linker.is_current = true and linker.is_internal = false
           and cvt.name = %5$L 
       limit 1;', object_table, linker_table, linker_field, id, synonym_type)
