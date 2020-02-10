@@ -13,6 +13,9 @@
 -- Property functions (featureprop, etc.).
 \ir properties/get_prop.sql
 
+-- Cvterm related code.
+\ir cvterms/gene_ontology.sql
+
 -- Gene
 \ir FBgn/main.sql
 
@@ -24,3 +27,7 @@
 
 -- Pubs
 \ir FBrf/main.sql
+
+-- Gene Groups
+\ir FBgg/main.sql
+\ir FBgg/pathway_member_table.sql
