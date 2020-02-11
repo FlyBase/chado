@@ -30,4 +30,3 @@
 
 -- Gene Groups
 \ir FBgg/main.sql
-\ir FBgg/pathway_member_table.sql
