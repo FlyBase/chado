@@ -29,3 +29,15 @@ WHERE p.uniquename = $1
     ;
 $$ LANGUAGE SQL STABLE;
 
+CREATE OR REPLACE FUNCTION flybase.get_grpmemberprop(grpmember_id integer, type text)
+    RETURNS SETOF grpmemberprop AS
+$$
+SELECT gmp.*
+FROM grpmember gm
+         JOIN grpmemberprop gmp ON gm.grpmember_id = gmp.grpmember_id
+         JOIN cvterm cvt ON gmp.type_id = cvt.cvterm_id
+WHERE gm.grpmember_id = $1
+  AND cvt.name SIMILAR TO $2
+  AND cvt.is_obsolete = 0
+    ;
+$$ LANGUAGE SQL STABLE;
