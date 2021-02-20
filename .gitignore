@@ -19,3 +19,8 @@ nytprof.out
 *.bs
 /_eumm/
 .idea
+.tool-versions
+venv
+*.tsv
+*.csv
+*.txt
