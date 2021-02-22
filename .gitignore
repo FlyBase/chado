@@ -24,3 +24,5 @@ venv
 *.tsv
 *.csv
 *.txt
+.DS_Store
+*.gz
