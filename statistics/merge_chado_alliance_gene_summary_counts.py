@@ -70,14 +70,14 @@ def selected_summary(summaries: list = []):
         selected = "Gene Snapshot"
     elif int(summaries[1]) >= 1:
         selected = "UniProt Function"
-    elif int(summaries[2]) == 1:
-        selected = "FlyBase Pathway"
-    elif int(summaries[2]) > 1:
-        selected = "FlyBase Pathway (multiple)"
-    elif int(summaries[3]) == 1:
-        selected = "FlyBase Gene Group"
-    elif int(summaries[3]) > 1:
-        selected = "FlyBase Gene Group (multiple)"
+    # elif int(summaries[2]) == 1:
+    #     selected = "FlyBase Pathway"
+    # elif int(summaries[2]) > 1:
+    #     selected = "FlyBase Pathway (multiple)"
+    # elif int(summaries[3]) == 1:
+    #     selected = "FlyBase Gene Group"
+    # elif int(summaries[3]) > 1:
+    #     selected = "FlyBase Gene Group (multiple)"
     elif int(summaries[4]) >= 1:
         selected = "Ineteractive Fly"
     elif int(summaries[5]) >= 1:
