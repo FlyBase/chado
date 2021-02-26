@@ -71,6 +71,7 @@ select
       where f.feature_id = fdbx.feature_id 
         and lower(dbxpt.name) = 'if_summary'
         and lower(db.name) = 'interactivefly'
+        and dbxp.value is not null
     ) if on true
 
   where f.is_obsolete = false
