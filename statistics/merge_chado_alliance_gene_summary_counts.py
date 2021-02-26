@@ -79,7 +79,7 @@ def selected_summary(summaries: list = []):
     # elif int(summaries[3]) > 1:
     #     selected = "FlyBase Gene Group (multiple)"
     elif int(summaries[4]) >= 1:
-        selected = "Ineteractive Fly"
+        selected = "Interactive Fly"
     elif int(summaries[5]) >= 1:
         selected = "Alliance Gene Description"
     return selected
