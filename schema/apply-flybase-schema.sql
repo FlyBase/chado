@@ -5,7 +5,7 @@
 \ir ids/id_updater.sql
 
 -- Symbol related functions.
-\ir symbols/current_synonym.sql
+\ir symbols/main.sql
 
 -- Relationship functions (feature_relationship, etc.).
 \ir relationships/get_relationship.sql
