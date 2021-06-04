@@ -246,20 +246,20 @@ DROP TABLE IF EXISTS gene_group.pathway_disease CASCADE;
 CREATE TABLE gene_group.pathway_disease
 AS
 SELECT distinct on (member.fbgn_id, dbx.accession, qualifier, is_experimental, member.id) member.fbgn_id,
-                                                                               jsonb_build_object(
-                                                                                       'id',
-                                                                                       db.name || ':' || dbx.accession,
-                                                                                       'name',
-                                                                                       cvt.name,
-                                                                                       'qualifier',
-                                                                                       qualifier.value
-                                                                                   )     AS disease,
-                                                                               CASE
-                                                                                   WHEN ec.value ~ '\y(CEC|CEA)\y'
-                                                                                       THEN true
-                                                                                   ELSE false
-                                                                                   END   AS is_experimental,
-                                                                               member.id AS pathway_member_id
+                                                                                          jsonb_build_object(
+                                                                                                  'id',
+                                                                                                  db.name || ':' || dbx.accession,
+                                                                                                  'name',
+                                                                                                  cvt.name,
+                                                                                                  'qualifier',
+                                                                                                  qualifier.value
+                                                                                              )     AS disease,
+                                                                                          CASE
+                                                                                              WHEN ec.value ~ '\y(CEC|CEA)\y'
+                                                                                                  THEN true
+                                                                                              ELSE false
+                                                                                              END   AS is_experimental,
+                                                                                          member.id AS pathway_member_id
 FROM gene_group.pathway_member AS member
          JOIN feature g ON g.uniquename = member.fbgn_id
          JOIN gene.allele ON gene.allele.gene_id = g.feature_id
@@ -286,20 +286,20 @@ WHERE cv.name = 'disease_ontology'
 UNION
 
 SELECT distinct on (member.fbgn_id, dbx.accession, qualifier, is_experimental, member.id) member.fbgn_id,
-                                                                               jsonb_build_object(
-                                                                                       'id',
-                                                                                       db.name || ':' || dbx.accession,
-                                                                                       'name',
-                                                                                       cvt.name,
-                                                                                       'qualifier',
-                                                                                       qualifier.value
-                                                                                   )     AS disease,
-                                                                               CASE
-                                                                                   WHEN ec.value ~ '\y(CEC|CEA)\y'
-                                                                                       THEN true
-                                                                                   ELSE false
-                                                                                   END   AS is_experimental,
-                                                                               member.id AS pathway_member_id
+                                                                                          jsonb_build_object(
+                                                                                                  'id',
+                                                                                                  db.name || ':' || dbx.accession,
+                                                                                                  'name',
+                                                                                                  cvt.name,
+                                                                                                  'qualifier',
+                                                                                                  qualifier.value
+                                                                                              )     AS disease,
+                                                                                          CASE
+                                                                                              WHEN ec.value ~ '\y(CEC|CEA)\y'
+                                                                                                  THEN true
+                                                                                              ELSE false
+                                                                                              END   AS is_experimental,
+                                                                                          member.id AS pathway_member_id
 FROM gene_group.pathway_member AS member
          JOIN feature g ON g.uniquename = member.fbgn_id
          JOIN feature_cvterm fcvt ON g.feature_id = fcvt.feature_id
