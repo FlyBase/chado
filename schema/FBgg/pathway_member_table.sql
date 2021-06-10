@@ -147,12 +147,8 @@ SET go_molecular_function =
                   JOIN db ON dbx.db_id = db.db_id
          WHERE g.uniquename = fbgn_id
            AND fcvtpt.name = 'evidence_code'
-           AND flybase.is_go_evidence_experimental(fcvtp.value) = true
-           AND NOT EXISTS(SELECT 1
-                          FROM feature_cvtermprop qual
-                                   JOIN cvterm qt ON qual.type_id = qt.cvterm_id
-                          WHERE qt.name = 'NOT'
-                            AND qual.feature_cvterm_id = GO.feature_cvterm_id)
+           AND flybase.is_go_evidence_experimental(fcvtp.value) = true -- Only terms based on experimental evidence
+           AND GO.is_not = false                                       -- exclude negated terms
            AND dbx.accession != '0005515' -- exclude protein_binding
         );
 
