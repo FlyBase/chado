@@ -3,12 +3,13 @@ CREATE SCHEMA IF NOT EXISTS humanhealth;
 DROP TABLE IF EXISTS humanhealth.allele_disease_variant CASCADE;
 CREATE TABLE humanhealth.allele_disease_variant
 AS
-SELECT DISTINCT ON (fbhh_id, fbal_id) fbhh.uniquename                        AS fbhh_id,
-                                      fbgn.uniquename                        AS fbgn_id,
-                                      fbgn.symbol                            AS fbgn_symbol,
-                                      fbal.uniquename                        AS fbal_id,
-                                      fbal.symbol                            AS fbal_symbol,
-                                      flybase.current_symbol(div.uniquename) as div_designation,
+SELECT DISTINCT ON (fbhh_id, fbal_id) fbhh.uniquename                         AS fbhh_id,
+                                      flybase.current_symbol(fbhh.uniquename) AS fbhh_symbol,
+                                      fbgn.uniquename                         AS fbgn_id,
+                                      fbgn.symbol                             AS fbgn_symbol,
+                                      fbal.uniquename                         AS fbal_id,
+                                      fbal.symbol                             AS fbal_symbol,
+                                      flybase.current_symbol(div.uniquename)  AS div_designation,
                                       -- DIV synonyms in a JSON array.
                                       (SELECT jsonb_agg(distinct div_s.synonym_sgml)
                                        FROM feature_synonym div_fs
@@ -17,7 +18,7 @@ SELECT DISTINCT ON (fbhh_id, fbal_id) fbhh.uniquename                        AS 
                                                                       div_fs.is_internal = false
                                                 JOIN cvterm div_st ON div_s.type_id = div_st.cvterm_id
                                        WHERE div_fs.feature_id = div.feature_id
-                                      )                                      AS div_synonym,
+                                      )                                       AS div_synonym,
                                       -- Array of JSON objects that represent dbxref entries.
                                       (SELECT jsonb_agg(jsonb_build_object(
                                               'db', db.name,
@@ -29,13 +30,13 @@ SELECT DISTINCT ON (fbhh_id, fbal_id) fbhh.uniquename                        AS 
                                                 JOIN db on dbx.db_id = db.db_id
                                        WHERE fdbx.feature_id = div.feature_id
                                          AND fdbx.is_current = true
-                                      )                                      AS dbxref,
+                                      )                                       AS dbxref,
                                       -- Comments
                                       CASE
                                           WHEN fbtp.uniquename IS NOT NULL
                                               THEN jsonb_build_array('Transgenic construct', fp1.value, fp2.value)
                                           ELSE jsonb_build_array('Alteration of endrogenous gene', fp1.value, fp2.value)
-                                          END                                AS comment,
+                                          END                                 AS comment,
                                       -- Array of JSON objects for the DIV publication.
                                       (SELECT jsonb_agg(jsonb_build_object(
                                               'fbid', p.uniquename,
@@ -45,14 +46,14 @@ SELECT DISTINCT ON (fbhh_id, fbal_id) fbhh.uniquename                        AS 
                                                 JOIN featureprop_pub fpp ON fp.featureprop_id = fpp.featureprop_id
                                                 JOIN pub p ON fpp.pub_id = p.pub_id AND p.is_obsolete = false
                                        WHERE flybase.data_class(p.uniquename) = 'FBrf'
-                                      )                                      AS pubs,
+                                      )                                       AS pubs,
                                       -- Array of FBrf IDs for all Allele pubs.
                                       (SELECT jsonb_agg(p.uniquename)
                                        FROM feature_pub fp
                                                 JOIN pub p ON fp.pub_id = p.pub_id AND p.is_obsolete = false
                                        WHERE fp.feature_id = fbal.subject_id
                                          AND flybase.data_class(p.uniquename) = 'FBrf'
-                                      )                                      AS fbal_pubs
+                                      )                                       AS fbal_pubs
 
 FROM humanhealth AS fbhh
          JOIN humanhealth_feature hf ON fbhh.humanhealth_id = hf.humanhealth_id
