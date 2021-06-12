@@ -34,8 +34,8 @@ SELECT DISTINCT ON (fbhh_id, fbal_id) fbhh.uniquename                         AS
                                       -- Comments
                                       CASE
                                           WHEN fbtp.uniquename IS NOT NULL
-                                              THEN jsonb_build_array('Transgenic construct', fp1.value, fp2.value)
-                                          ELSE jsonb_build_array('Alteration of endrogenous gene', fp1.value, fp2.value)
+                                              THEN jsonb_build_array('Transgenic construct.', fp1.value, fp2.value)
+                                          ELSE jsonb_build_array('Alteration of endogenous gene.', fp1.value, fp2.value)
                                           END                                 AS comment,
                                       -- Array of JSON objects for the DIV publication.
                                       (SELECT jsonb_agg(jsonb_build_object(
