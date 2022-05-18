@@ -30,3 +30,6 @@
 
 -- Gene Groups
 \ir FBgg/main.sql
+
+-- Datasets
+\ir FBlc/main.sql
