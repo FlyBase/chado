@@ -1,10 +1,10 @@
-CREATE SCHEMA IF NOT EXISTS datasets;
+CREATE SCHEMA IF NOT EXISTS dataset;
 
 -- Drop table
-DROP TABLE IF EXISTS datasets.dataset cascade;
+DROP TABLE IF EXISTS dataset.dataset cascade;
 
 -- Create an adjacency list table to hold the hierachical dataset structure.
-CREATE TABLE datasets.dataset
+CREATE TABLE dataset.dataset
   AS SELECT
            -- Dataset ID (FBlc)
            fblc.uniquename AS fblc_id,
@@ -22,7 +22,7 @@ CREATE TABLE datasets.dataset
          WHERE fblc.is_obsolete = false;
 ;
 
-ALTER TABLE datasets.dataset ADD COLUMN uid SERIAL PRIMARY KEY;
+ALTER TABLE dataset.dataset ADD COLUMN uid SERIAL PRIMARY KEY;
 
 /*
 Returns a set of library table rows that represent the leaf nodes 
@@ -34,22 +34,22 @@ FBgn ID.
 @param id - FlyBase FBgn ID
 @return   - Set of library rows.
 */
-CREATE OR REPLACE FUNCTION datasets.dataset_leaf_nodes_by_gene(id text)
+CREATE OR REPLACE FUNCTION dataset.dataset_leaf_nodes_by_gene(id text)
     RETURNS SETOF library AS 
 $$
 SELECT DISTINCT fblc.*
     FROM library fblc JOIN library_feature lf ON fblc.library_id = lf.library_id
                       JOIN gene.gene fbgn ON lf.feature_id = fbgn.feature_id
-                      JOIN datasets.dataset ON fblc.library_id = datasets.dataset.library_id
+                      JOIN dataset.dataset ON fblc.library_id = dataset.dataset.library_id
     WHERE fblc.is_obsolete = false
       AND fbgn.uniquename = $1
-      AND fblc.uniquename != datasets.dataset.parent_id
+      AND fblc.uniquename != dataset.dataset.parent_id
   ;
 $$ LANGUAGE SQL STABLE;
 
-DROP TYPE IF EXISTS datasets.dataset_node CASCADE;
+DROP TYPE IF EXISTS dataset.dataset_node CASCADE;
 -- Type used to represent a node in the dataset adjacency list.
-CREATE TYPE datasets.dataset_node AS (
+CREATE TYPE dataset.dataset_node AS (
   fblc_id text,
   library_id integer,
   symbol varchar(255),
@@ -68,18 +68,18 @@ bottom node all the way to the root dataset.
 @return   - Temporary table with FBlc ID, library.library_id, FBlc symbol, parent FBlc ID, and relationship type.
 
 */
-CREATE OR REPLACE FUNCTION datasets.ancestors(id text)
-    RETURNS SETOF datasets.dataset_node AS
+CREATE OR REPLACE FUNCTION dataset.ancestors(id text)
+    RETURNS SETOF dataset.dataset_node AS
 $$
 BEGIN
   -- Common table expression to discover all ancestor nodes of a given FBlc.
 RETURN QUERY WITH RECURSIVE dataset_ancestors(fblc_id, library_id, symbol, parent_id, rel_type) AS (
     SELECT fblc.fblc_id, fblc.library_id, fblc.symbol, fblc.parent_id, fblc.rel_type
-      FROM datasets.dataset fblc
+      FROM dataset.dataset fblc
       WHERE fblc.fblc_id = $1
     UNION
       SELECT fblc.fblc_id, fblc.library_id, fblc.symbol, fblc.parent_id, fblc.rel_type
-        FROM dataset_ancestors da JOIN datasets.dataset fblc ON (da.parent_id = fblc.fblc_id)
+        FROM dataset_ancestors da JOIN dataset.dataset fblc ON (da.parent_id = fblc.fblc_id)
   )
   SELECT * from dataset_ancestors;
 END;
@@ -111,14 +111,14 @@ This structure can be used to reconstruct / traverse the FBlc graph.
 @return   - Set of dataset_node 
 
 */
-CREATE OR REPLACE FUNCTION datasets.dataset_graph_by_gene(id text)
-    RETURNS SETOF datasets.dataset_node AS
+CREATE OR REPLACE FUNCTION dataset.dataset_graph_by_gene(id text)
+    RETURNS SETOF dataset.dataset_node AS
 $$
 SELECT DISTINCT anc.*
   -- Use an implicit lateral join query to fetch the list of all leaf nodes for the FBgn
   -- and then get all ancestors.
-  FROM datasets.dataset_leaf_nodes_by_gene($1) fblc,
-       datasets.ancestors(fblc.uniquename) as anc
+  FROM dataset.dataset_leaf_nodes_by_gene($1) fblc,
+       dataset.ancestors(fblc.uniquename) as anc
 ;
 $$ LANGUAGE SQL STABLE;
 
