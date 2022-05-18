@@ -1,8 +1,8 @@
-DROP TYPE IF EXISTS flybase.stock cascade;
-CREATE TYPE flybase.stock AS (fbid text, fbst text, center text, stock_number text, genotype varchar(1024));
+DROP TYPE IF EXISTS flybase.stock_type cascade;
+CREATE TYPE flybase.stock_type AS (fbid text, fbst text, center text, stock_number text, genotype varchar(1024));
 
 CREATE OR REPLACE FUNCTION flybase.get_stocks(id text)
-RETURNS SETOF flybase.stock AS $$
+RETURNS SETOF flybase.stock_type AS $$
 DECLARE
   -- Cast scalar to an array.
   ids text[] = array_agg(id);
@@ -14,10 +14,10 @@ $$ LANGUAGE plpgsql STABLE;
 COMMENT ON FUNCTION flybase.get_stocks(text) IS 'Given a FlyBase ID, returns the associated stocks.';
 
 CREATE OR REPLACE FUNCTION flybase.get_stocks(ids text[])
-RETURNS SETOF flybase.stock AS $$
+RETURNS SETOF flybase.stock_type AS $$
 DECLARE
   id text;
-  _stock flybase.stock;
+  _stock flybase.stock_type;
   num_genotype text[];
   id_genotype text[];
 BEGIN
