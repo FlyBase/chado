@@ -48,7 +48,6 @@ CREATE TABLE gene.allele
                  JOIN
                    flybase.get_feature_relationship(fbgn.uniquename,'alleleof','FBal') AS fbal
                    ON (fbgn.feature_id=fbal.object_id)
-      
      UNION
       /*
        * Transgenic constructs containing regulatory region of gene X.
@@ -90,7 +89,7 @@ CREATE TABLE gene.allele
                  JOIN
                    flybase.get_feature_relationship(fbgn.uniquename,'attributed_as_expression_of','FBtr|FBpp') AS fbtr_fbpp
                    ON (fbgn.feature_id=fbtr_fbpp.object_id)
-                 JOIN 
+                 JOIN
                    flybase.get_feature_relationship(fbtr_fbpp.uniquename, 'associated_with','FBal', 'object') AS fbal
                    ON (fbtr_fbpp.subject_id=fbal.subject_id)
                  JOIN
@@ -103,7 +102,7 @@ CREATE TABLE gene.allele
       /*
        * Transgenic constructs containing regulatory region of gene X.
        * Method 3 from Gillian (WEB-1015).
-       * NOT IMPLEMENTED IN CHADO YET
+       *NOT IMPLEMENTED IN CHADO YET
        */
       SELECT
         -- Allele ID (FBal)
@@ -116,13 +115,13 @@ CREATE TABLE gene.allele
         true AS is_construct,
         true AS propagate_transgenic_uses,
         true AS gene_is_regulatory_region
-      FROM gene.gene AS fbgn
+        FROM gene.gene AS fbgn
                  JOIN
                    flybase.get_feature_relationship(fbgn.uniquename,'associated_with','FBsf') AS fbsf
                    ON (fbgn.feature_id=fbsf.object_id)
-                 JOIN 
+                 JOIN
                    flybase.get_feature_relationship(fbsf.uniquename, 'has_reg_region','FBal') AS fbal
-                   ON (fbsf.object_id=fbal.object_id)             
+                   ON (fbsf.object_id=fbal.object_id)
 ;
 
 ALTER TABLE gene.allele ADD COLUMN id SERIAL PRIMARY KEY;
@@ -147,6 +146,17 @@ UPDATE gene.allele SET pub_count = (select flybase.pub_count(fbal_id));
 -- Add and populate a known lesion column.
 ALTER TABLE gene.allele ADD COLUMN known_lesion boolean DEFAULT false;
 UPDATE gene.allele SET known_lesion = (SELECT COUNT(*) != 0 FROM flybase.get_featureprop(fbal_id,'known_lesion'));
+
+-- Add and populate a transgenic_product_class_list column.
+ALTER TABLE gene.allele ADD COLUMN transgenic_product_class_list text DEFAULT NULL;
+UPDATE gene.allele SET transgenic_product_class_list = ( SELECT string_agg(cvt2.name, ', ')
+          FROM feature f, feature_cvterm f_cvt, feature_cvtermprop f_cvtp, cvterm cvt, cvterm cvt2
+          WHERE f.uniquename = fbal_id
+          AND f.feature_id  = f_cvt.feature_id
+          AND f_cvt.feature_cvterm_id = f_cvtp.feature_cvterm_id
+          AND f_cvtp.type_id = cvt.cvterm_id AND cvt.name = 'transgenic_product_class'
+          AND f_cvt.cvterm_id = cvt2.cvterm_id AND cvt.name IS NOT NULL
+          );
 
 -- Add and populate a has_image column.
 ALTER TABLE gene.allele ADD COLUMN has_image boolean DEFAULT false;
@@ -180,8 +190,8 @@ CREATE TABLE gene.allele_class
            * then splits on the colon ':', and returns the id/name as an array of 2 elements.
            */
           SELECT uniquename, regexp_split_to_array(trim(both ' @' from allele_class), ':') AS split_class FROM
-            /* 
-             * Selects all promoted_allele_class featureprops and splits those with multiple 
+            /*
+             * Selects all promoted_allele_class featureprops and splits those with multiple
              * classes delimited by a comma into multiple result rows.
              * i.e.
              * This single string "@FBcv0123:name1@, @FBcv0124:name2@" is turned into two result rows.
@@ -199,7 +209,7 @@ ALTER TABLE gene.allele_class ADD CONSTRAINT allele_class_fk1 FOREIGN KEY (allel
 CREATE INDEX allele_class_idx1 ON gene.allele_class (allele_id);
 CREATE INDEX allele_class_idx2 ON gene.allele_class (name);
 CREATE INDEX allele_class_idx3 ON gene.allele_class (fbcv_id);
- 
+
 /* Allele stock table */
 DROP TABLE IF EXISTS gene.allele_stock;
 CREATE TABLE gene.allele_stock
@@ -252,10 +262,10 @@ CREATE TABLE gene.insertion
             NULL::bigint AS gene_id
        FROM gene.allele AS fbal JOIN feature f on (fbal.fbal_id = f.uniquename)
                                 JOIN flybase.get_feature_relationship(fbal.fbal_id, 'associated_with', 'FBti', 'object') AS fbti
-                                  ON (f.feature_id = fbti.subject_id) 
+                                  ON (f.feature_id = fbti.subject_id)
      UNION
      /*
-      * The following select pulls in insertions that are known to be expressed in 
+      * The following select pulls in insertions that are known to be expressed in
       * the pattern of gene X, but which are not know to cause an allele of gene X.
       */
      SELECT DISTINCT ON (fbgn.feature_id, fbti.uniquename)
@@ -269,7 +279,7 @@ CREATE TABLE gene.insertion
                                    ON fbtr_fbpp.subject_id = fbal.subject_id
                                  JOIN flybase.get_feature_relationship(fbal.uniquename,'associated_with','FBti','object') as fbti
                                    ON fbal.object_id = fbti.subject_id
-       WHERE 
+       WHERE
          /** Make sure it doesn't have an associated allele **/
          NOT EXISTS (
            SELECT 1
@@ -321,12 +331,12 @@ CREATE INDEX insertion_idx5 on gene.insertion (stocks_count);
 CREATE INDEX insertion_idx6 on gene.insertion (pub_count);
 
 /*
- * Constructs that are either produced by an insertion or 
+ * Constructs that are either produced by an insertion or
  * associated with an allele.
  */
 DROP TABLE IF EXISTS gene.construct CASCADE;
 CREATE TABLE gene.construct
-  AS SELECT 
+  AS SELECT
             fbtp.uniquename AS fbtp_id,
             fbtp.symbol AS symbol,
             fbti.id as insertion_id,
@@ -335,7 +345,7 @@ CREATE TABLE gene.construct
               join flybase.get_feature_relationship(fbti.fbti_id, 'producedby', 'FBtp|FBmc|FBms', 'object') AS fbtp
                 on (f.feature_id = fbtp.subject_id)
      UNION
-     SELECT 
+     SELECT
             fbtp.uniquename AS fbtp_id,
             fbtp.symbol AS symbol,
             NULL::bigint as insertion_id,
@@ -389,7 +399,7 @@ ALTER TABLE gene.tool ADD CONSTRAINT tool_fk2 FOREIGN KEY (allele_id) REFERENCES
 DROP TABLE IF EXISTS gene.tool_use CASCADE;
 CREATE TABLE gene.tool_use
   -- Get all tool_uses associated with the alleles.
-  AS SELECT 
+  AS SELECT
             cvt.name as name,
             db.name || ':' || dbx.accession as fbcv_id,
             fbal.id as allele_id,
@@ -404,7 +414,7 @@ CREATE TABLE gene.tool_use
                              JOIN db on (dbx.db_id = db.db_id)
        WHERE fcvtp_type.name = 'tool_uses'
      UNION
-     SELECT 
+     SELECT
             cvt.name as name,
             db.name || ':' || dbx.accession as fbcv_id,
             NULL::bigint as allele_id,
@@ -419,7 +429,7 @@ CREATE TABLE gene.tool_use
                              JOIN db on (dbx.db_id = db.db_id)
        WHERE fcvtp_type.name = 'tool_uses'
      UNION
-     SELECT 
+     SELECT
             cvt.name as name,
             db.name || ':' || dbx.accession as fbcv_id,
             NULL::bigint as allele_id,
@@ -434,13 +444,13 @@ CREATE TABLE gene.tool_use
                              JOIN db on (dbx.db_id = db.db_id)
        WHERE fcvtp_type.name = 'tool_uses'
 ;
-
 ALTER TABLE gene.tool_use ADD COLUMN id SERIAL PRIMARY KEY;
 CREATE INDEX tool_use_idx1 on gene.tool_use (fbcv_id);
 CREATE INDEX tool_use_idx2 on gene.tool_use (name);
 CREATE INDEX tool_use_idx3 on gene.tool_use (allele_id);
 CREATE INDEX tool_use_idx4 on gene.tool_use (construct_id);
 CREATE INDEX tool_use_idx5 on gene.tool_use (tool_id);
+CREATE INDEX tool_use_idx5 on gene.tool_use (product_class);
 ALTER TABLE gene.tool_use ADD CONSTRAINT tool_use_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 ALTER TABLE gene.tool_use ADD CONSTRAINT tool_use_fk2 FOREIGN KEY (construct_id) REFERENCES gene.construct (id);
 ALTER TABLE gene.tool_use ADD CONSTRAINT tool_use_fk3 FOREIGN KEY (tool_id) REFERENCES gene.tool (id);
