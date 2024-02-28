@@ -181,7 +181,7 @@ CREATE INDEX allele_idx11 ON gene.allele (has_image);
 DROP TABLE IF EXISTS gene.allele_transgenic_product_class;
 CREATE TABLE gene.allele_transgenic_product_class
   AS (
-    SELECT DISTINCT gene.allele.fbal_id AS allele_id, CONCAT('SO:',allele_dbxref.accession) AS so_id, allele_cvterm_descriptor."name" AS transgenic_product_class
+    SELECT DISTINCT gene.allele.id AS allele_id, gene.allele.fbal_id, CONCAT('SO:',allele_dbxref.accession) AS so_id, allele_cvterm_descriptor."name" AS transgenic_product_class
     FROM gene.allele
     JOIN feature allele_feature
         ON gene.allele.fbal_id = allele_feature.uniquename
@@ -197,7 +197,7 @@ CREATE TABLE gene.allele_transgenic_product_class
         ON allele_cvterm_descriptor.dbxref_id = allele_dbxref.dbxref_id
   );
 ALTER TABLE gene.allele_transgenic_product_class ADD PRIMARY KEY (allele_id, so_id);
-ALTER TABLE gene.allele_transgenic_product_class ADD CONSTRAINT allele_transgenic_product_class_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (fbal_id);
+ALTER TABLE gene.allele_transgenic_product_class ADD CONSTRAINT allele_transgenic_product_class_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
 CREATE INDEX allele_transgenic_product_class_idx1 ON gene.allele_transgenic_product_class (allele_id);
 CREATE INDEX allele_transgenic_product_class_idx2 ON gene.allele_transgenic_product_class (so_id);
 CREATE INDEX allele_transgenic_product_class_idx3 ON gene.allele_transgenic_product_class (transgenic_product_class);
