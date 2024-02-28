@@ -147,17 +147,6 @@ UPDATE gene.allele SET pub_count = (select flybase.pub_count(fbal_id));
 ALTER TABLE gene.allele ADD COLUMN known_lesion boolean DEFAULT false;
 UPDATE gene.allele SET known_lesion = (SELECT COUNT(*) != 0 FROM flybase.get_featureprop(fbal_id,'known_lesion'));
 
--- Add and populate a transgenic_product_class_list column.
-ALTER TABLE gene.allele ADD COLUMN transgenic_product_class_list text DEFAULT NULL;
-UPDATE gene.allele SET transgenic_product_class_list = ( SELECT string_agg(cvt2.name, ', ')
-          FROM feature f, feature_cvterm f_cvt, feature_cvtermprop f_cvtp, cvterm cvt, cvterm cvt2
-          WHERE f.uniquename = fbal_id
-          AND f.feature_id  = f_cvt.feature_id
-          AND f_cvt.feature_cvterm_id = f_cvtp.feature_cvterm_id
-          AND f_cvtp.type_id = cvt.cvterm_id AND cvt.name = 'transgenic_product_class'
-          AND f_cvt.cvterm_id = cvt2.cvterm_id AND cvt.name IS NOT NULL
-          );
-
 -- Add and populate a has_image column.
 ALTER TABLE gene.allele ADD COLUMN has_image boolean DEFAULT false;
 UPDATE gene.allele SET has_image = (SELECT COUNT(*) != 0 FROM flybase.get_featureprop(fbal_id,'linked_image'));
@@ -176,6 +165,32 @@ CREATE INDEX allele_idx8 ON gene.allele (pub_count);
 CREATE INDEX allele_idx9 ON gene.allele (gene_id);
 CREATE INDEX allele_idx10 ON gene.allele (is_alleleof);
 CREATE INDEX allele_idx11 ON gene.allele (has_image);
+
+/*Allele transgenic product class table*/
+DROP TABLE IF EXISTS gene.allele_transgenic_product_class;
+CREATE TABLE gene.allele_transgenic_product_class
+  AS (
+    SELECT DISTINCT gene.allele.id AS allele_id, gene.allele.fbal_id, CONCAT('SO:',allele_dbxref.accession) AS so_id, allele_cvterm_descriptor."name" AS transgenic_product_class
+    FROM gene.allele
+    JOIN feature allele_feature
+        ON gene.allele.fbal_id = allele_feature.uniquename
+    JOIN feature_cvterm allele_cvterm
+        ON allele_feature.feature_id = allele_cvterm.feature_id
+    JOIN feature_cvtermprop allele_cvterm_property
+        ON allele_cvterm.feature_cvterm_id = allele_cvterm_property.feature_cvterm_id
+    JOIN cvterm allele_cvterm_property_descriptor
+        ON (allele_cvterm_property.type_id = allele_cvterm_property_descriptor.cvterm_id AND allele_cvterm_property_descriptor."name" = 'transgenic_product_class')
+    JOIN cvterm allele_cvterm_descriptor
+        ON allele_cvterm.cvterm_id = allele_cvterm_descriptor.cvterm_id
+    JOIN dbxref allele_dbxref
+        ON allele_cvterm_descriptor.dbxref_id = allele_dbxref.dbxref_id
+  );
+ALTER TABLE gene.allele_transgenic_product_class ADD PRIMARY KEY (allele_id, so_id);
+ALTER TABLE gene.allele_transgenic_product_class ADD CONSTRAINT allele_transgenic_product_class_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
+CREATE INDEX allele_transgenic_product_class_idx1 ON gene.allele_transgenic_product_class (allele_id);
+CREATE INDEX allele_transgenic_product_class_idx2 ON gene.allele_transgenic_product_class (so_id);
+CREATE INDEX allele_transgenic_product_class_idx3 ON gene.allele_transgenic_product_class (transgenic_product_class);
+
 
 /* Allele class table */
 DROP TABLE IF EXISTS gene.allele_class;
