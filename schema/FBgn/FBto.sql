@@ -143,6 +143,10 @@ UPDATE gene.allele SET stocks_count = (select count(*) from flybase.get_stocks(f
 ALTER TABLE gene.allele ADD COLUMN pub_count bigint DEFAULT 0;
 UPDATE gene.allele SET pub_count = (select flybase.pub_count(fbal_id));
 
+-- Add and populate a paper count column.
+ALTER TABLE gene.allele ADD COLUMN paper_count bigint DEFAULT 0;
+UPDATE gene.allele SET paper_count = (select flybase.pub_count_by_type(fbal_id, 'paper'));
+
 -- Add and populate a known lesion column.
 ALTER TABLE gene.allele ADD COLUMN known_lesion boolean DEFAULT false;
 UPDATE gene.allele SET known_lesion = (SELECT COUNT(*) != 0 FROM flybase.get_featureprop(fbal_id,'known_lesion'));
@@ -165,6 +169,7 @@ CREATE INDEX allele_idx8 ON gene.allele (pub_count);
 CREATE INDEX allele_idx9 ON gene.allele (gene_id);
 CREATE INDEX allele_idx10 ON gene.allele (is_alleleof);
 CREATE INDEX allele_idx11 ON gene.allele (has_image);
+CREATE INDEX allele_idx12 ON gene.allele (paper_count);
 
 /*Allele transgenic product class table*/
 DROP TABLE IF EXISTS gene.allele_transgenic_product_class;
