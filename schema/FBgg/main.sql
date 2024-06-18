@@ -1,6 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS gene_group;
 
-CREATE OR REPLACE FUNCTION gene_group.is_pathway(fbgg text, cvid varchar default '0003017') RETURNS bool AS
+CREATE OR REPLACE FUNCTION gene_group.is_pathway(fbgg text, cvid varchar default '0007034') RETURNS bool AS
 $$
 SELECT EXISTS(
                SELECT 1
@@ -9,7 +9,7 @@ SELECT EXISTS(
                         JOIN dbxref dbx ON (cvt.dbxref_id = dbx.dbxref_id)
                         JOIN db ON (dbx.db_id = db.db_id)
                WHERE upper(db.name) = 'FBCV'
-                 AND dbx.accession = '0003017'
+                 AND dbx.accession = '0007034'
                  AND gcvt.grp_id = grp.grp_id
            )
 FROM grp

@@ -44,7 +44,7 @@ select
       where f.feature_id = fgm.feature_id 
         and gmt.name = 'grpmember_feature'
         and db.name = 'FBcv'
-        and dbx.accession = '0003017'
+        and dbx.accession = '0007034'
     ) fbpath on true
 
     left join lateral (
@@ -59,7 +59,7 @@ select
       where f.feature_id = fgm.feature_id 
         and gmt.name = 'grpmember_feature'
         and db.name = 'FBcv'
-        and dbx.accession != '0003017'
+        and dbx.accession != '0007034'
     ) fbgroup on true
 
     left join lateral (
