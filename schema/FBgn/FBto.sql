@@ -196,6 +196,69 @@ CREATE INDEX allele_transgenic_product_class_idx1 ON gene.allele_transgenic_prod
 CREATE INDEX allele_transgenic_product_class_idx2 ON gene.allele_transgenic_product_class (so_id);
 CREATE INDEX allele_transgenic_product_class_idx3 ON gene.allele_transgenic_product_class (transgenic_product_class);
 
+/*Split System Combinations*/
+DROP TABLE IF EXISTS gene.split_system_combination;
+CREATE TABLE gene.split_system_combination
+    AS (
+        SELECT
+            split_system_combination.uniquename AS fbco_id,
+            split_system_combination."name" AS symbol
+        FROM feature split_system_combination
+        JOIN cvterm cvt
+            ON (split_system_combination.type_id = cvt.cvterm_id)
+        WHERE split_system_combination.uniquename ~ '^FBco[0-9]+$'
+            AND split_system_combination.is_analysis = false
+            AND split_system_combination.is_obsolete = FALSE
+            AND cvt."name" = 'split system combination'
+    );
+
+ALTER TABLE gene.split_system_combination ADD COLUMN id SERIAL PRIMARY KEY;
+
+
+-- Add and populate a stocks count column.
+ALTER TABLE gene.split_system_combination ADD COLUMN stocks_count bigint DEFAULT 0;
+UPDATE gene.split_system_combination SET stocks_count = (select count(*) from flybase.get_stocks(fbco_id));
+
+-- Add and populate a pub count column.
+ALTER TABLE gene.split_system_combination ADD COLUMN pub_count bigint DEFAULT 0;
+UPDATE gene.split_system_combination SET pub_count = (select flybase.pub_count(fbco_id));
+
+CREATE INDEX split_system_combination_idx1 ON gene.split_system_combination (fbco_id);
+CREATE INDEX split_system_combination_idx2 ON gene.split_system_combination (symbol);
+CREATE INDEX split_system_combination_idx3 ON gene.split_system_combination (pub_count);
+CREATE INDEX split_system_combination_idx4 ON gene.split_system_combination (stocks_count);
+
+/* SSC Component Alleles */
+DROP TABLE IF EXISTS gene.split_system_combination_component_allele;
+CREATE TABLE gene.split_system_combination_component_allele
+    AS (
+        SELECT
+        	gene.split_system_combination.id AS split_system_combination_id,
+        	gene.allele.id AS allele_id
+        FROM feature split_system_combination_feature
+        JOIN cvterm split_system_combination_cvt
+          	ON split_system_combination_feature.type_id = split_system_combination_cvt.cvterm_id
+        JOIN feature_relationship ssc_component_allele_relationship
+        	ON ssc_component_allele_relationship.subject_id = split_system_combination_feature.feature_id
+        JOIN feature allele_feature
+        	ON ssc_component_allele_relationship.object_id = allele_feature.feature_id
+        JOIN gene.split_system_combination
+            ON gene.split_system_combination.symbol = split_system_combination_feature.uniquename
+        JOIN gene.allele
+            ON gene.allele.symbol = allele_feature.uniquename
+        WHERE split_system_combination_feature.uniquename ~ '^FBco[0-9]+$'
+        	AND allele_feature.uniquename ~ '^FBal[0-9]+$'
+        	AND split_system_combination_feature.is_analysis = FALSE
+        	AND split_system_combination_feature.is_obsolete = FALSE
+        	AND split_system_combination_cvt."name" = 'split system combination'
+    );
+
+ALTER TABLE gene.split_system_combination_component_allele ADD PRIMARY KEY (allele_id, split_system_combination_id);
+ALTER TABLE gene.split_system_combination_component_allele ADD CONSTRAINT split_system_combination_component_allele_fk1 FOREIGN KEY (allele_id) REFERENCES gene.allele (id);
+ALTER TABLE gene.split_system_combination_component_allele ADD CONSTRAINT split_system_combination_component_allele_fk2 FOREIGN KEY (split_system_combination_id) REFERENCES gene.split_system_combination (id);
+CREATE INDEX split_system_combination_component_allele_idx1 ON gene.split_system_combination_component_allele (allele_id);
+CREATE INDEX split_system_combination_component_allele_idx2 ON gene.split_system_combination_component_allele (split_system_combination_id);
+
 
 /* Allele class table */
 DROP TABLE IF EXISTS gene.allele_class;
