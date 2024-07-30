@@ -243,9 +243,9 @@ CREATE TABLE gene.split_system_combination_component_allele
         JOIN feature allele_feature
         	ON ssc_component_allele_relationship.object_id = allele_feature.feature_id
         JOIN gene.split_system_combination
-            ON gene.split_system_combination.symbol = split_system_combination_feature.uniquename
+            ON gene.split_system_combination.fbco_id = split_system_combination_feature.uniquename
         JOIN gene.allele
-            ON gene.allele.symbol = allele_feature.uniquename
+            ON gene.allele.fbal_id = allele_feature.uniquename
         WHERE split_system_combination_feature.uniquename ~ '^FBco[0-9]+$'
         	AND allele_feature.uniquename ~ '^FBal[0-9]+$'
         	AND split_system_combination_feature.is_analysis = FALSE
