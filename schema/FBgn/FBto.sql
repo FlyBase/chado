@@ -228,6 +228,7 @@ CREATE INDEX split_system_combination_idx2 ON gene.split_system_combination (sym
 CREATE INDEX split_system_combination_idx3 ON gene.split_system_combination (pub_count);
 CREATE INDEX split_system_combination_idx4 ON gene.split_system_combination (stocks_count);
 
+
 /* SSC Component Alleles */
 DROP TABLE IF EXISTS gene.split_system_combination_component_allele;
 CREATE TABLE gene.split_system_combination_component_allele
@@ -259,6 +260,18 @@ ALTER TABLE gene.split_system_combination_component_allele ADD CONSTRAINT split_
 CREATE INDEX split_system_combination_component_allele_idx1 ON gene.split_system_combination_component_allele (allele_id);
 CREATE INDEX split_system_combination_component_allele_idx2 ON gene.split_system_combination_component_allele (split_system_combination_id);
 
+CREATE OR REPLACE FUNCTION gene.split_system_combinations_by_fbal(ids text[])
+    RETURNS SETOF gene.split_system_combination AS $$
+    SELECT DISTINCT split_system_combination.*
+        FROM gene.split_system_combination AS split_system_combination
+        JOIN gene.split_system_combination_component_allele as component_allele_relationship
+            ON split_system_combination.id = component_allele_relationship.split_system_combination_id
+        JOIN gene.allele as allele
+            ON allele.id = component_allele_relationship.allele_id
+        WHERE allele.fbal_id = ANY (ids)
+          AND allele.is_alleleof = true
+    ;
+$$ LANGUAGE SQL STABLE;
 
 /* Allele class table */
 DROP TABLE IF EXISTS gene.allele_class;
