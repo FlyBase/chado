@@ -479,7 +479,7 @@ CREATE TABLE gene.tool
             NULL::bigint as construct_id,
             fbal.id as allele_id
          FROM gene.allele AS fbal JOIN feature f ON (fbal.fbal_id = f.uniquename)
-                                  JOIN flybase.get_feature_relationship(fbal.fbal_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto|FBgn', 'object') AS fbto_fbgn
+                                  JOIN flybase.get_feature_relationship(fbal.fbal_id, 'has_reg_region|encodes_tool|carries_tool|tagged_with', 'FBto|FBgn|FBsf', 'object') AS fbto_fbgn
                                     ON (f.feature_id = fbto_fbgn.subject_id)
 ;
 ALTER TABLE gene.tool ADD COLUMN id SERIAL PRIMARY KEY;
