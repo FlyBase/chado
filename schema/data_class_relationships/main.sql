@@ -1,5 +1,5 @@
 
-CREATE SCHEME IF NOT EXISTS dataclass_relationship;
+CREATE SCHEMA IF NOT EXISTS dataclass_relationship;
 
 \ir gene_disease.sql
 \ir gene_enzyme.sql

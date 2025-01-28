@@ -3,7 +3,7 @@
     making the data storage for gene groups more abstract to account for all gene groups, not just pathways.
 */
 
-CREATE SCHEME IF NOT EXISTS dataclass;
+CREATE SCHEMA IF NOT EXISTS dataclass;
 
 -- Gene must be before allele since allele references gene
 \ir gene.sql
