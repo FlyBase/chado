@@ -68,7 +68,18 @@ SELECT DISTINCT ON (gene.uniquename)
 			)
 		WHERE fp_cyto_range.feature_id = gene.feature_id
 	) AS cytogenic_map,
-	testis_specificity.score AS testis_specificity_index
+	(
+		SELECT DISTINCT lfp.value
+		FROM library_feature lf
+		JOIN library_featureprop lfp
+			ON lf.library_feature_id = lfp.library_feature_id
+		JOIN cvterm cvt_lfp_type
+			ON (
+				lfp.type_id = cvt_lfp_type.cvterm_id
+				AND cvt_lfp_type."name" = 'testis_specificity_index_score'
+			)
+		WHERE lf.feature_id = gene.feature_id
+	) AS testis_specificity_index
 FROM feature gene
 -- Add fullname
 JOIN feature_synonym fs_fullname
@@ -98,21 +109,6 @@ JOIN cvterm cvt_symbol
 	    s_symbol.type_id = cvt_symbol.cvterm_id
 	    AND cvt_symbol."name" = 'symbol'
     )
--- Add testis-specificity score
-LEFT JOIN (
-	SELECT DISTINCT
-		lf.feature_id,
-		lfp.value AS score
-	FROM library_feature lf
-	JOIN library_featureprop lfp
-		ON lf.library_feature_id = lfp.library_feature_id
-	JOIN cvterm cvt_lfp_type
-		ON (
-			lfp.type_id = cvt_lfp_type.cvterm_id
-			AND cvt_lfp_type."name" = 'testis_specificity_index_score'
-		)
-) AS testis_specificity
-	ON gene.feature_id = testis_specificity.feature_id
 -- Filter out non-genes
 WHERE gene.uniquename ~ '^FBgn[0-9]+$'
 	AND gene.is_analysis = FALSE
