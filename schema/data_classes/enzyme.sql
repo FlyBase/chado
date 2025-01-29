@@ -4,7 +4,7 @@ DROP TABLE IF EXISTS dataclass.enzyme CASCADE;
 CREATE TABLE dataclass.enzyme
 AS
 SELECT enzyme.accession AS id,
-	dbxrp.value AS ""
+	dbxrp.value AS "name"
 FROM dbxref enzyme
 JOIN dbxrefprop dbxrp
 	USING (dbxref_id)

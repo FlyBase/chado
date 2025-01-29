@@ -4,14 +4,14 @@ DROP TABLE IF EXISTS dataclass.disease CASCADE;
 CREATE TABLE dataclass.disease
 AS
 SELECT db."name" || ':' || dbxr.accession AS id,
-	cv_gene."name"
+	cv."name"
 FROM cvterm cvt
-JOIN cv cv
+JOIN cv
 	ON (
 		cvt.cv_id = cv.cv_id
 		AND cv."name" = 'disease_ontology'
 	)
-JOIN dbxref dbxr_gene
+JOIN dbxref dbxr
 	ON cvt.dbxref_id = dbxr.dbxref_id
 JOIN db
 	ON (
