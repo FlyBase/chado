@@ -2,6 +2,7 @@
 DROP TABLE IF EXISTS dataclass.allele CASCADE;
 
 CREATE TABLE dataclass.allele
+AS
 SELECT DISTINCT ON (allele.uniquename)
 	allele.uniquename AS id,
 	s_fullname."name" AS "name",
