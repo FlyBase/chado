@@ -100,7 +100,7 @@ LEFT JOIN (
 ) AS testis_specificity_score
 	ON gene.feature_id = testis_specificity_score.feature_id
 -- Add fullname
-JOIN (
+LEFT JOIN (
 	SELECT DISTINCT ON (fs_fullname.feature_id)
 		fs_fullname.feature_id,
 		s_fullname."name",
@@ -118,7 +118,7 @@ JOIN (
 ) AS fullname
 	ON gene.feature_id = fullname.feature_id
 -- Add symbol
-JOIN (
+LEFT JOIN (
 	SELECT DISTINCT ON (fs_symbol.feature_id)
 		fs_symbol.feature_id,
 		s_symbol."name",
