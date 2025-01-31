@@ -48,7 +48,12 @@ LEFT JOIN cvterm cvt_fr_gene_type
         AND cvt_fr_gene_type."name" = 'alleleof'
     )
 LEFT JOIN feature gene
-    ON gene.feature_id = fr_gene.object_id
+    ON (
+        gene.feature_id = fr_gene.object_id
+            AND gene.uniquename ~ '^FBgn[0-9]+$'
+        	AND gene.is_analysis = FALSE
+        	AND gene.is_obsolete = FALSE
+    )
 -- Add propagate_transgenic_uses
 LEFT JOIN featureprop fp_propagate_transgenic_uses
     ON (
