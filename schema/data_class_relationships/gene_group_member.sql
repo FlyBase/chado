@@ -50,6 +50,9 @@ WHERE gene.uniquename ~ '^FBgn[0-9]+$'
 GROUP BY gene.uniquename, grp.uniquename, gmp.value
 ;
 
+
+ALTER TABLE dataclass_relationship.gene_group_member ALTER COLUMN subgroup_id DROP NOT NULL;
+
 ALTER TABLE dataclass_relationship.gene_group_member ADD PRIMARY KEY (gene_id, gene_group_id, subgroup_id);
 
 ALTER TABLE dataclass_relationship.gene_group_member
@@ -61,6 +64,7 @@ ALTER TABLE dataclass_relationship.gene_group_member
 ALTER TABLE dataclass_relationship.gene_group_member
     ADD CONSTRAINT gene_group_member_fk3
     FOREIGN KEY (subgroup_id) REFERENCES dataclass.gene_group (id);
+
 
 CREATE INDEX gene_group_member_idx1 ON dataclass_relationship.gene_group_member (gene_id);
 CREATE INDEX gene_group_member_idx2 ON dataclass_relationship.gene_group_member (gene_group_id);

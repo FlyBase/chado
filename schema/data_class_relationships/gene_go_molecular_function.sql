@@ -30,7 +30,7 @@ JOIN cv cv_gmf
 		AND cv_gmf."name" = 'molecular_function'
 	)
 JOIN feature_cvtermprop fcvtp_gmf
-	ON fcvtp_gmf.feature_cvterm_id = fcvtp_gmf.feature_cvterm_id
+	ON fcvt_gmf.feature_cvterm_id = fcvtp_gmf.feature_cvterm_id
 JOIN cvterm cvt_fcvtp_gmf_type
 	ON (
 		fcvtp_gmf.type_id = cvt_fcvtp_gmf_type.cvterm_id
