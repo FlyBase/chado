@@ -6,7 +6,7 @@ DROP TABLE IF EXISTS dataclass_relationship.gene_go_molecular_function CASCADE;
 
 CREATE TABLE dataclass_relationship.gene_go_molecular_function
 AS
-SELECT gene.uniquename AS gene_id,
+SELECT DISTINCT gene.uniquename AS gene_id,
 	CONCAT(db_gmf.name, ':', dbxr_gmf.accession) AS go_id,
 	cvt_gmf."name" AS go_molecular_function,
 	(

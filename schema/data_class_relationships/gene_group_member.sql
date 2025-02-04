@@ -51,9 +51,9 @@ GROUP BY gene.uniquename, grp.uniquename, gmp.value
 ;
 
 
-ALTER TABLE dataclass_relationship.gene_group_member ALTER COLUMN subgroup_id DROP NOT NULL;
+ALTER TABLE gene.allele_class ADD COLUMN id SERIAL PRIMARY KEY;
 
-ALTER TABLE dataclass_relationship.gene_group_member ADD PRIMARY KEY (gene_id, gene_group_id, subgroup_id);
+ALTER TABLE dataclass_relationship.gene_group_member ADD CONSTRAINT UNIQUE (gene_id, gene_group_id, subgroup_id);
 
 ALTER TABLE dataclass_relationship.gene_group_member
     ADD CONSTRAINT gene_group_member_fk1

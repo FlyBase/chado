@@ -38,7 +38,10 @@ JOIN feature ortholog
 		AND ortholog.is_obsolete = FALSE
 	)
 JOIN feature_dbxref fdbxf_ortholog
-	ON ortholog.feature_id = fdbxf_ortholog.feature_id
+    ON (
+        ortholog.feature_id = fdbxf_ortholog.feature_id
+        AND fdbxf_ortholog.is_current = TRUE
+    )
 JOIN dbxref dbxr_ortholog
 	ON fdbxf_ortholog.dbxref_id = dbxr_ortholog.dbxref_id
 JOIN db db_ortholog

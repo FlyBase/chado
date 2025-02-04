@@ -21,7 +21,7 @@ FROM (
 		gene_or_allele.uniquename AS gene_or_allele_id,
 		db_gene."name" || ':' || dbxr_gene.accession AS disease_id,
 	    fcvtp_gene.value ~ '\y(CEC|CEA)\y' AS is_experimental,
-	    qualifier.value AS qualifier
+	    COALESCE(qualifier.value, '') AS qualifier
 	FROM feature gene_or_allele
 	JOIN feature_cvterm fcvt_gene
 		ON gene_or_allele.feature_id = fcvt_gene.feature_id
@@ -72,6 +72,8 @@ FROM (
 		ON (
 			fr_gene_or_allele.object_id = parent_gene.feature_id
 			AND parent_gene.uniquename ~ '^FBgn[0-9]+$'
+			AND parent_gene.is_analysis = FALSE
+			AND parent_gene.is_obsolete = FALSE
 		)
 	WHERE gene_or_allele.uniquename ~ '^FB(gn|al)[0-9]+$'
 		AND gene_or_allele.is_analysis = FALSE
