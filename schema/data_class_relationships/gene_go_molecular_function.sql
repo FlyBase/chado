@@ -54,5 +54,5 @@ ALTER TABLE dataclass_relationship.gene_go_molecular_function ADD CONSTRAINT gen
 
 CREATE INDEX gene_go_molecular_function_idx1 ON dataclass_relationship.gene_go_molecular_function (gene_id);
 CREATE INDEX gene_go_molecular_function_idx2 ON dataclass_relationship.gene_go_molecular_function (go_id);
-CREATE INDEX gene_go_molecular_function_idx2 ON dataclass_relationship.gene_go_molecular_function (go_molecular_function);
-CREATE INDEX gene_go_molecular_function_idx2 ON dataclass_relationship.gene_go_molecular_function (is_experimental);
+CREATE INDEX gene_go_molecular_function_idx3 ON dataclass_relationship.gene_go_molecular_function (go_molecular_function);
+CREATE INDEX gene_go_molecular_function_idx4 ON dataclass_relationship.gene_go_molecular_function (is_experimental);
