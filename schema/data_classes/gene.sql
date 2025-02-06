@@ -152,3 +152,5 @@ CREATE INDEX gene_idx6 ON dataclass.gene (aka);
 CREATE INDEX gene_idx7 ON dataclass.gene (antibody);
 CREATE INDEX gene_idx8 ON dataclass.gene (organism_id);
 CREATE INDEX gene_idx9 ON dataclass.gene (testis_specificity_index);
+
+

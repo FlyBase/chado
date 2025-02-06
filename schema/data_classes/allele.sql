@@ -1,4 +1,6 @@
-
+/**
+    //TODO: This query can be optimized similar to dataclass.gene. (removing DISTINCT)
+*/
 DROP TABLE IF EXISTS dataclass.allele CASCADE;
 
 CREATE TABLE dataclass.allele
@@ -8,8 +10,7 @@ SELECT DISTINCT ON (allele.uniquename)
 	s_fullname."name" AS "name",
 	s_fullname.synonym_sgml AS name_sgml,
 	s_symbol."name" AS symbol,
-	s_symbol.synonym_sgml AS symbol_sgml,
-	gene.uniquename AS gene_id
+	s_symbol.synonym_sgml AS symbol_sgml
 FROM feature allele
 -- Add fullname
 JOIN feature_synonym fs_fullname
@@ -39,27 +40,6 @@ JOIN cvterm cvt_symbol
 	    s_symbol.type_id = cvt_symbol.cvterm_id
 	    AND cvt_symbol."name" = 'symbol'
     )
--- Add gene
-LEFT JOIN feature_relationship fr_gene
-    ON allele.feature_id = fr_gene.subject_id
-LEFT JOIN cvterm cvt_fr_gene_type
-    ON (
-        fr_gene.type_id = cvt_fr_gene_type.cvterm_id
-        AND cvt_fr_gene_type."name" = 'alleleof'
-    )
-LEFT JOIN feature gene
-    ON (
-        gene.feature_id = fr_gene.object_id
-            AND gene.uniquename ~ '^FBgn[0-9]+$'
-        	AND gene.is_analysis = FALSE
-        	AND gene.is_obsolete = FALSE
-    )
--- Add propagate_transgenic_uses
-LEFT JOIN featureprop fp_propagate_transgenic_uses
-    ON (
-        allele.feature_id = fp_propagate_transgenic_uses.feature_id
-        AND fp_propagate_transgenic_uses.value != 'n'
-    )
 -- Filter out non-alleles
 JOIN cvterm cvt_type
 	ON (
@@ -74,10 +54,10 @@ WHERE allele.uniquename ~ '^FBal[0-9]+$'
 
 ALTER TABLE dataclass.allele ADD PRIMARY KEY (id);
 
-ALTER TABLE dataclass.allele ADD CONSTRAINT allele_fk1 FOREIGN KEY (gene_id) REFERENCES dataclass.gene (id);
-
 CREATE INDEX allele_idx1 ON dataclass.allele (id);
 CREATE INDEX allele_idx2 ON dataclass.allele ("name");
 CREATE INDEX allele_idx3 ON dataclass.allele (name_sgml);
 CREATE INDEX allele_idx4 ON dataclass.allele (symbol);
 CREATE INDEX allele_idx5 ON dataclass.allele (symbol_sgml);
+
+

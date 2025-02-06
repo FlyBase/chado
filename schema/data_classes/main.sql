@@ -15,3 +15,17 @@ CREATE SCHEMA IF NOT EXISTS dataclass;
 \ir ortholog.sql
 
 \ir ../data_class_relationships/main.sql
+
+ALTER TABLE dataclass.gene RENAME TO geneV2;
+ALTER TABLE dataclass.allele RENAME TO alleleV2;
+ALTER TABLE dataclass.disease RENAME TO diseaseV2;
+ALTER TABLE dataclass.enzyme RENAME TO enzymeV2;
+ALTER TABLE dataclass.gene_group RENAME TO gene_groupV2;
+ALTER TABLE dataclass.ortholog RENAME TO orthologV2;
+
+ALTER TABLE dataclass_relationship.gene_disease RENAME TO gene_diseaseV2;
+ALTER TABLE dataclass_relationship.gene_enzyme RENAME TO gene_enzymeV2;
+ALTER TABLE dataclass_relationship.gene_go_molecular_function RENAME TO gene_go_molecular_functionV2;
+ALTER TABLE dataclass_relationship.gene_group_member RENAME TO gene_group_memberV2;
+ALTER TABLE dataclass_relationship.gene_human_ortholog RENAME TO gene_human_orthologV2;
+ALTER TABLE dataclass_relationship.gene_allele RENAME TO gene_alleleV2;
