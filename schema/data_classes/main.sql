@@ -5,6 +5,21 @@
 
 CREATE SCHEMA IF NOT EXISTS dataclass;
 
+DROP TABLE IF EXISTS dataclass.allele CASCADE;
+DROP TABLE IF EXISTS dataclass.geneV2 CASCADE;
+DROP TABLE IF EXISTS dataclass.alleleV2 CASCADE;
+DROP TABLE IF EXISTS dataclass.diseaseV2 CASCADE;
+DROP TABLE IF EXISTS dataclass.enzymeV2 CASCADE;
+DROP TABLE IF EXISTS dataclass.gene_groupV2 CASCADE;
+DROP TABLE IF EXISTS dataclass.orthologV2 CASCADE;
+
+DROP TABLE IF EXISTS dataclass_relationship.gene_diseaseV2 CASCADE;
+DROP TABLE IF EXISTS dataclass_relationship.gene_enzymeV2 CASCADE;
+DROP TABLE IF EXISTS dataclass_relationship.gene_go_molecular_functionV2 CASCADE;
+DROP TABLE IF EXISTS dataclass_relationship.gene_group_memberV2 CASCADE;
+DROP TABLE IF EXISTS dataclass_relationship.gene_human_orthologV2 CASCADE;
+DROP TABLE IF EXISTS dataclass_relationship.gene_alleleV2 CASCADE;
+
 -- Gene must be before allele since allele references gene
 \ir gene.sql
 
