@@ -9,8 +9,8 @@ SELECT DISTINCT ON (allele.uniquename)
 	allele.uniquename AS id,
 	fullname."name" AS "name",
 	fullname.synonym_sgml AS name_sgml,
-	s_symbol."name" AS symbol,
-	s_symbol.synonym_sgml AS symbol_sgml
+	symbol."name" AS symbol,
+	symbol.synonym_sgml AS symbol_sgml
 FROM feature allele
 -- Add fullname
 LEFT JOIN (
