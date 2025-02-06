@@ -5,8 +5,7 @@ DROP TABLE IF EXISTS dataclass.allele CASCADE;
 
 CREATE TABLE dataclass.allele
 AS
-SELECT DISTINCT ON (allele.uniquename)
-	allele.uniquename AS id,
+SELECT allele.uniquename AS id,
 	fullname."name" AS "name",
 	fullname.synonym_sgml AS name_sgml,
 	symbol."name" AS symbol,
@@ -57,7 +56,6 @@ JOIN cvterm cvt_type
 WHERE allele.uniquename ~ '^FBal[0-9]+$'
 	AND allele.is_analysis = FALSE
 	AND allele.is_obsolete = FALSE
-
 ;
 
 ALTER TABLE dataclass.allele ADD PRIMARY KEY (id);
