@@ -56,6 +56,11 @@ FROM (
 			AND alleleof_gene.is_analysis = FALSE
 			AND alleleof_gene.is_obsolete = FALSE
 		)
+    JOIN cvterm cvt_type
+            ON (
+                allele.type_id = cvt_type.cvterm_id
+                AND cvt_type."name" = 'allele'
+            )
 	WHERE allele.uniquename ~ '^FBal[0-9]+$'
 		AND allele.is_analysis = FALSE
 		AND allele.is_obsolete = FALSE
@@ -78,6 +83,11 @@ UNION
 			AND has_reg_region_gene.is_analysis = FALSE
 			AND has_reg_region_gene.is_obsolete = FALSE
 		)
+    JOIN cvterm cvt_type
+            ON (
+                allele.type_id = cvt_type.cvterm_id
+                AND cvt_type."name" = 'allele'
+            )
 	WHERE allele.uniquename ~ '^FBal[0-9]+$'
 		AND allele.is_analysis = FALSE
 		AND allele.is_obsolete = FALSE
@@ -101,6 +111,11 @@ UNION
 			AND fbal.is_analysis = FALSE
 			AND fbal.is_obsolete = FALSE
 		)
+    JOIN cvterm cvt_type
+            ON (
+                fbal.type_id = cvt_type.cvterm_id
+                AND cvt_type."name" = 'allele'
+            )
 	-- Add fbal associated_with fbtp
 	JOIN feature_relationship fr_fbal_associated_with_fbtp
 		ON fbal.feature_id = fr_fbal_associated_with_fbtp.subject_id
@@ -182,6 +197,11 @@ UNION
 			AND aw_gene.is_analysis = FALSE
 			AND aw_gene.is_obsolete = FALSE
 		)
+    JOIN cvterm cvt_type
+        ON (
+            allele.type_id = cvt_type.cvterm_id
+            AND cvt_type."name" = 'allele'
+        )
 	WHERE allele.uniquename ~ '^FBal[0-9]+$'
 		AND allele.is_analysis = FALSE
 		AND allele.is_obsolete = FALSE
