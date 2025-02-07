@@ -6,47 +6,65 @@ DROP TABLE IF EXISTS dataclass.allele CASCADE;
 CREATE TABLE dataclass.allele
 AS
 SELECT allele.uniquename AS id,
-	fullname."name" AS "name",
-	fullname.synonym_sgml AS name_sgml,
-	symbol."name" AS symbol,
-	symbol.synonym_sgml AS symbol_sgml
+	s_fullname."name" AS "name",
+	s_fullname.synonym_sgml AS name_sgml,
+	s_symbol."name" AS symbol,
+	s_symbol.synonym_sgml AS symbol_sgml
 FROM feature allele
 -- Add fullname
-LEFT JOIN (
-	SELECT DISTINCT ON (fs_fullname.feature_id)
-		fs_fullname.feature_id,
-		s_fullname."name",
-		s_fullname.synonym_sgml
-	FROM feature_synonym fs_fullname
-	JOIN synonym s_fullname
-    	ON fs_fullname.synonym_id = s_fullname.synonym_id
-	JOIN cvterm cvt_fullname
-	    ON (
-		    s_fullname.type_id = cvt_fullname.cvterm_id
-		    AND cvt_fullname."name" = 'fullname'
-	    )
-	WHERE fs_fullname.is_current = TRUE
-    	AND fs_fullname.is_internal = FALSE
-) AS fullname
+JOIN feature_synonym fs_fullname
+    ON allele.feature_id = fs_fullname.feature_id
+JOIN synonym s_fullname
+    ON fs_fullname.synonym_id = s_fullname.synonym_id
+JOIN cvterm cvt_fullname
+    ON (
+        s_fullname.type_id = cvt_fullname.cvterm_id
+        AND cvt_fullname."name" = 'fullname'
+    )
+-- LEFT JOIN (
+-- 	SELECT DISTINCT ON (fs_fullname.feature_id)
+-- 		fs_fullname.feature_id,
+-- 		s_fullname."name",
+-- 		s_fullname.synonym_sgml
+-- 	FROM feature_synonym fs_fullname
+-- 	JOIN synonym s_fullname
+--     	ON fs_fullname.synonym_id = s_fullname.synonym_id
+-- 	JOIN cvterm cvt_fullname
+-- 	    ON (
+-- 		    s_fullname.type_id = cvt_fullname.cvterm_id
+-- 		    AND cvt_fullname."name" = 'fullname'
+-- 	    )
+-- 	WHERE fs_fullname.is_current = TRUE
+--     	AND fs_fullname.is_internal = FALSE
+-- ) AS fullname
 	ON allele.feature_id = fullname.feature_id
 -- Add symbol
-LEFT JOIN (
-	SELECT DISTINCT ON (fs_symbol.feature_id)
-		fs_symbol.feature_id,
-		s_symbol."name",
-		s_symbol.synonym_sgml
-	FROM feature_synonym fs_symbol
-	JOIN synonym s_symbol
-    	ON fs_symbol.synonym_id = s_symbol.synonym_id
-	JOIN cvterm cvt_symbol
-	    ON (
-		    s_symbol.type_id = cvt_symbol.cvterm_id
-		    AND cvt_symbol."name" = 'symbol'
-	    )
-	WHERE fs_symbol.is_current = TRUE
-    	AND fs_symbol.is_internal = FALSE
-) AS symbol
-	ON allele.feature_id = symbol.feature_id
+JOIN feature_synonym fs_fullname
+    ON allele.feature_id = fs_fullname.feature_id
+JOIN synonym s_fullname
+    ON fs_fullname.synonym_id = s_fullname.synonym_id
+JOIN cvterm cvt_fullname
+    ON (
+        s_fullname.type_id = cvt_fullname.cvterm_id
+        AND cvt_fullname."name" = 'symbol'
+    )
+-- LEFT JOIN (
+-- 	SELECT DISTINCT ON (fs_symbol.feature_id)
+-- 		fs_symbol.feature_id,
+-- 		s_symbol."name",
+-- 		s_symbol.synonym_sgml
+-- 	FROM feature_synonym fs_symbol
+-- 	JOIN synonym s_symbol
+--     	ON fs_symbol.synonym_id = s_symbol.synonym_id
+-- 	JOIN cvterm cvt_symbol
+-- 	    ON (
+-- 		    s_symbol.type_id = cvt_symbol.cvterm_id
+-- 		    AND cvt_symbol."name" = 'symbol'
+-- 	    )
+-- 	WHERE fs_symbol.is_current = TRUE
+--     	AND fs_symbol.is_internal = FALSE
+-- ) AS symbol
+-- 	ON allele.feature_id = symbol.feature_id
 -- Filter out non-alleles
 JOIN cvterm cvt_type
 	ON (

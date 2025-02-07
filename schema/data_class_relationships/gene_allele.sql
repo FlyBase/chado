@@ -206,6 +206,7 @@ UNION
 		AND allele.is_analysis = FALSE
 		AND allele.is_obsolete = FALSE
 ) AS subquery
+JOIN dataclass.allele ON dataclass.allele.id = subquery.allele_id
 ;
 
 ALTER TABLE dataclass_relationship.gene_allele ADD PRIMARY KEY (gene_id, allele_id, is_construct);
