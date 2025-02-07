@@ -37,16 +37,16 @@ JOIN cvterm cvt_fullname
 -- 	WHERE fs_fullname.is_current = TRUE
 --     	AND fs_fullname.is_internal = FALSE
 -- ) AS fullname
-	ON allele.feature_id = fullname.feature_id
+-- 	ON allele.feature_id = fullname.feature_id
 -- Add symbol
-JOIN feature_synonym fs_fullname
-    ON allele.feature_id = fs_fullname.feature_id
-JOIN synonym s_fullname
-    ON fs_fullname.synonym_id = s_fullname.synonym_id
-JOIN cvterm cvt_fullname
+JOIN feature_synonym fs_symbol
+    ON allele.feature_id = fs_symbol.feature_id
+JOIN synonym s_symbol
+    ON fs_symbol.synonym_id = s_symbol.synonym_id
+JOIN cvterm cvt_symbol
     ON (
-        s_fullname.type_id = cvt_fullname.cvterm_id
-        AND cvt_fullname."name" = 'symbol'
+        s_symbol.type_id = cvt_symbol.cvterm_id
+        AND cvt_symbol."name" = 'symbol'
     )
 -- LEFT JOIN (
 -- 	SELECT DISTINCT ON (fs_symbol.feature_id)
