@@ -8,7 +8,20 @@ SELECT
 	grp.uniquename AS gene_group_id,
 	SUBSTRING(gmp.value FROM '(?<=^@)FBgg\d{7}(?=:)') AS subgroup_id,
 	gmp.value AS group_member_label,
-	JSONB_AGG(DISTINCT pub.uniquename) AS gene_group_pubs
+	COALESCE(
+		JSON_AGG(
+			    JSONB_BUILD_OBJECT(
+			        'id',
+			        pub.uniquename,
+			        'name',
+			        pub.miniref
+			    )
+		)
+		FILTER (
+			WHERE pub.uniquename IS NOT NULL
+			AND pub.miniref IS NOT NULL
+		)
+	)AS gene_group_pubs
 FROM feature gene
 JOIN feature_grpmember fgm
 	USING (feature_id)

@@ -4,7 +4,7 @@ DROP TABLE IF EXISTS dataclass.disease CASCADE;
 CREATE TABLE dataclass.disease
 AS
 SELECT db."name" || ':' || dbxr.accession AS id,
-	cv."name"
+	cvt."name"
 FROM cvterm cvt
 JOIN cv
 	ON (
