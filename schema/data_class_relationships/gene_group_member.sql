@@ -14,7 +14,7 @@ SELECT
 			        'id',
 			        pub.uniquename,
 			        'name',
-			        pub.miniref
+			        SUBSTRING(pub.miniref FROM '[^,\n]+,[^,\n]+(?=,)')
 			    )
 		)
 		FILTER (
@@ -48,7 +48,7 @@ LEFT JOIN feature_grpmember_pub fgmp
 	ON fgmp.feature_grpmember_id = fgm.feature_grpmember_id
 LEFT JOIN pub
 	ON (
-		fgmp.feature_grpmember_pub_id = pub.pub_id
+		fgmp.pub_id = pub.pub_id
 		AND pub.is_obsolete = FALSE
 		AND pub.uniquename ~ '^FBrf[0-9]+$'
 	)
