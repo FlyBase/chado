@@ -158,18 +158,18 @@ UPDATE gene.allele SET has_image = (SELECT COUNT(*) != 0 FROM flybase.get_featur
 ALTER TABLE gene.allele ADD CONSTRAINT allele_fk1 FOREIGN KEY (gene_id) REFERENCES gene.gene (feature_id);
 --CREATE UNIQUE INDEX CONCURRENTLY allele_idx1 on gene.allele (fbal_id);
 --ALTER TABLE gene.allele ADD CONSTRAINT unique_fbal_id UNIQUE USING INDEX allele_idx1;
-CREATE INDEX allele_idx1 ON gene.allele (fbal_id);
-CREATE INDEX allele_idx2 ON gene.allele (symbol);
-CREATE INDEX allele_idx3 ON gene.allele (is_construct);
-CREATE INDEX allele_idx4 ON gene.allele (propagate_transgenic_uses);
-CREATE INDEX allele_idx5 ON gene.allele (gene_is_regulatory_region);
-CREATE INDEX allele_idx6 ON gene.allele (stocks_count);
-CREATE INDEX allele_idx7 ON gene.allele (known_lesion);
-CREATE INDEX allele_idx8 ON gene.allele (pub_count);
-CREATE INDEX allele_idx9 ON gene.allele (gene_id);
-CREATE INDEX allele_idx10 ON gene.allele (is_alleleof);
-CREATE INDEX allele_idx11 ON gene.allele (has_image);
-CREATE INDEX allele_idx12 ON gene.allele (paper_count);
+CREATE INDEX gene_allele_idx1 ON gene.allele (fbal_id);
+CREATE INDEX gene_allele_idx2 ON gene.allele (symbol);
+CREATE INDEX gene_allele_idx3 ON gene.allele (is_construct);
+CREATE INDEX gene_allele_idx4 ON gene.allele (propagate_transgenic_uses);
+CREATE INDEX gene_allele_idx5 ON gene.allele (gene_is_regulatory_region);
+CREATE INDEX gene_allele_idx6 ON gene.allele (stocks_count);
+CREATE INDEX gene_allele_idx7 ON gene.allele (known_lesion);
+CREATE INDEX gene_allele_idx8 ON gene.allele (pub_count);
+CREATE INDEX gene_allele_idx9 ON gene.allele (gene_id);
+CREATE INDEX gene_allele_idx10 ON gene.allele (is_alleleof);
+CREATE INDEX gene_allele_idx11 ON gene.allele (has_image);
+CREATE INDEX gene_allele_idx12 ON gene.allele (paper_count);
 
 /*Allele transgenic product class table*/
 DROP TABLE IF EXISTS gene.allele_transgenic_product_class;

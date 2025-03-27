@@ -38,4 +38,3 @@ ALTER TABLE gene_group.pathway
     ADD PRIMARY KEY (grp_id);
 CREATE UNIQUE INDEX pathway_idx1 ON gene_group.pathway (uniquename);
 CREATE INDEX pathway_idx2 ON gene_group.pathway (name);
-

@@ -176,11 +176,11 @@ SET human_orthologs =
                   JOIN dbxref dbx ON fdbx.dbxref_id = dbx.dbxref_id
                   JOIN db ON dbx.db_id = db.db_id
                   JOIN LATERAL (
-             SELECT array_length(regexp_split_to_array(regexp_replace(props, 'diopt methods:\s+', ''), ',\s*'),
-                                 1) AS score
-             FROM regexp_split_to_table(fr.value, '\n+') AS props
-             WHERE props ILIKE 'diopt methods:%'
-             ) diopt ON TRUE
+                     SELECT array_length(regexp_split_to_array(regexp_replace(props, 'diopt methods:\s+', ''), ',\s*'),
+                                         1) AS score
+                     FROM regexp_split_to_table(fr.value, '\n+') AS props
+                     WHERE props ILIKE 'diopt methods:%'
+                 ) diopt ON TRUE
          WHERE o.genus = 'Homo'
            and o.species = 'sapiens'
            AND position('diopt methods' in fr.value) > 0

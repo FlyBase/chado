@@ -12,5 +12,5 @@ CREATE TABLE gene.gene
 ;
 
 ALTER TABLE gene.gene ADD PRIMARY KEY (feature_id);
-CREATE INDEX gene_idx1 ON gene.gene (uniquename);
-CREATE INDEX gene_idx2 ON gene.gene (name);
+CREATE INDEX gene_gene_idx1 ON gene.gene (uniquename);
+CREATE INDEX gene_gene_idx2 ON gene.gene (name);
